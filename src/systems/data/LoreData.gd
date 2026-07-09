@@ -1,46 +1,60 @@
 class_name LoreData
 extends RefCounted
-## Loads the Lore team's data layer (res://data/lore.json) once and indexes it.
-## Systems pull identity + ecology from here instead of hardcoding. Everything
-## degrades gracefully: if the file is missing/invalid, accessors return {} and
-## callers fall back to their own defaults.
+## Loads the data layer once and indexes it:
+##   res://data/lore.json   — identity + ecology (Lore team's authoritative file)
+##   res://data/combat.json — per-creature combat stats (hp/damage/speed/poise)
+## Systems pull from here instead of hardcoding. Everything degrades gracefully:
+## if a file is missing/invalid, accessors return {} and callers use their own
+## fallbacks (Main.TIER_TUNING for combat).
 
-const PATH := "res://data/lore.json"
+const LORE_PATH := "res://data/lore.json"
+const COMBAT_PATH := "res://data/combat.json"
 
 static var _loaded := false
-static var _ok := false
 static var _creatures := {}
 static var _flora := {}
+static var _combat := {}
 static var _rules := {}
 
 static func _ensure() -> void:
     if _loaded:
         return
     _loaded = true
-    if not FileAccess.file_exists(PATH):
-        push_warning("LoreData: %s not found — using hardcoded fallbacks." % PATH)
-        return
-    var f := FileAccess.open(PATH, FileAccess.READ)
+    _load_lore()
+    _load_combat()
+
+static func _read_json(path: String):
+    if not FileAccess.file_exists(path):
+        push_warning("LoreData: %s not found — using fallbacks." % path)
+        return null
+    var f := FileAccess.open(path, FileAccess.READ)
     if f == null:
-        return
+        return null
     var txt := f.get_as_text()
     f.close()
     var parsed = JSON.parse_string(txt)
     if typeof(parsed) != TYPE_DICTIONARY:
-        push_warning("LoreData: parse failed — using fallbacks.")
+        push_warning("LoreData: parse failed for %s." % path)
+        return null
+    return parsed
+
+static func _load_lore() -> void:
+    var d = _read_json(LORE_PATH)
+    if d == null:
         return
-    for c in parsed.get("creatures", []):
+    for c in d.get("creatures", []):
         _creatures[str(c.get("id", ""))] = c
-    var flora = parsed.get("flora", {})
+    var flora = d.get("flora", {})
     for group in ["trees", "fruit", "herbs"]:
         for item in flora.get(group, []):
             _flora[str(item.get("id", ""))] = item
-    _rules = parsed.get("over_hunting_rules", {})
-    _ok = true
+    _rules = d.get("over_hunting_rules", {})
 
-static func loaded() -> bool:
-    _ensure()
-    return _ok
+static func _load_combat() -> void:
+    var d = _read_json(COMBAT_PATH)
+    if d == null:
+        return
+    _combat = d.get("combat", {})
 
 static func creature(id: String) -> Dictionary:
     _ensure()
@@ -49,6 +63,10 @@ static func creature(id: String) -> Dictionary:
 static func flora(id: String) -> Dictionary:
     _ensure()
     return _flora.get(id, {})
+
+static func combat(id: String) -> Dictionary:
+    _ensure()
+    return _combat.get(id, {})
 
 static func keystone_spike() -> float:
     _ensure()
