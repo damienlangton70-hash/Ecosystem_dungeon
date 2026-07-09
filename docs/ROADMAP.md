@@ -36,8 +36,8 @@ The first genuinely fun 10 minutes.
       creatures for **raw meat**, and a buildable **campfire** cook-point.
 - [x] **Cooking & foraging:** forage regrowing berry bushes + herbs; cook meat + herb/fruit into
       **meals** that restore hunger, heal, and grant timed buffs (regen / stamina / defense / warmth).
-- [~] **Feel:** readable combat HUD (HP/STA/FOOD bars, depth, hostility, lock-on) done; cave
-      ambience audio still to come.
+- [x] **Feel:** readable combat HUD + procedural cave-ambience bed, campfire crackle, and
+      combat/creature SFX (whoosh/thud/growl/hurt/chime).
 
 ### M2 — The Ecosystem Reacts
 - [ ] Populations per species; predators hunt prey; day/rest cycle ticks the sim.
@@ -81,21 +81,23 @@ below is backed by concrete spec + loadable data, so implementation isn't blocke
 (The Gloamstalker Lynx just added in M1 pt.5 is a good proof: its ambush/pounce behaviour matches
 the ambush-predator archetype in `docs/CREATURE_BEHAVIOUR.md`.)
 
-1. **Content:** a second prey species + more flora variety; balance the new Lynx encounter.
+1. **Descend:** make the shaft load Floor 2 (The Rootways) as a second, deeper environment.
+   *(Ready: all Floor 2 / Tier 1–3 species + Rootways ecology in the bestiary + behaviour spec.)*
+2. **Content:** a second prey species + more flora variety; balance the new Lynx encounter.
    *(Ready: Grotto Springhare / Blind Vole / Deep Quail prey stats + behaviour, Lynx tuning values,
    and flora effects/placement in `CREATURE_BEHAVIOUR.md`, `ITEMS.md`, `data/lore.json`.)*
-2. **Cooking depth:** food spoilage; signature recipes with stronger combined buffs.
+3. **Cooking depth:** food spoilage; signature recipes with stronger combined buffs.
    *(Ready: spoilage + Bittersalt preservation, butchery-quality tiers, Cave Saffron amplification,
    and 30 dishes with combined buffs in `docs/RECIPES.md` + `data/lore.json`.)*
-3. **Audio:** a low cave-ambience bed and basic combat / creature / fire SFX.
-4. **Descend:** make the shaft load Floor 2 (The Rootways) as a second environment.
-   *(Ready: all Floor 2 / Tier 1–3 species + Rootways ecology in the bestiary + behaviour spec.)*
-5. **Combat polish:** player poise/stagger, a parry, and hit VFX/juice.
+4. **Combat polish:** player poise/stagger, a parry, and hit VFX/juice.
    *(Ready: per-archetype attack wind-up/recovery/tell timings in `CREATURE_BEHAVIOUR.md`, tuned to
    the player's existing i-frame/dodge constants.)*
+5. **Audio depth:** a warm music sting at camp; distinct per-creature calls.
 
 ## Done recently
-- **Lore layer — design one step ahead of production (this run):** full **BESTIARY** (30 creatures +
+- **M1 pt.6:** procedural audio — cave-ambience bed, campfire crackle, and combat/creature SFX
+  (whoosh / thud / growl / hurt / chime), synthesized in code (no binary assets).
+- **Lore layer — design one step ahead of production:** full **BESTIARY** (30 creatures +
   10 insects; art/silhouette notes for Graphics, danger cues for Mechanics); **CREATURE_BEHAVIOUR**
   (9 implementable behaviour archetypes + a 40-species table mapped onto the real
   `src/creatures/Creature.gd` state machine and the Ecosystem API, with attack tells tuned to the
