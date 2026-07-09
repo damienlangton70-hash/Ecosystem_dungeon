@@ -310,10 +310,11 @@ func _spawn_from_lore(id: String, pos: Vector3) -> void:
     c.is_predator = aggr >= 0.3
     c.ambush = arche == "ambush_predator"
     c.chase_speed_mult = 1.9 if c.ambush else 1.0
-    c.max_health = float(tune["hp"])
-    c.max_poise = float(tune["poise"])
-    c.move_speed = float(tune["speed"])
-    c.attack_damage = float(tune["dmg"])
+    var cs := LoreData.combat(id)
+    c.max_health = float(cs.get("hp", tune["hp"]))
+    c.max_poise = float(cs.get("poise", tune["poise"]))
+    c.move_speed = float(cs.get("speed", tune["speed"]))
+    c.attack_damage = float(cs.get("damage", tune["dmg"]))
     c.detect_radius = 6.0 + aware * 14.0
     c.body_color = tune["color"]
     c.body_height = float(tune["height"])
