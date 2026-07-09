@@ -136,4 +136,16 @@ func _die() -> void:
     state = State.DEAD
     if _ecosystem != null and _ecosystem.has_method("record_kill"):
         _ecosystem.record_kill(species_id, 1)
+    _drop_meat()
     queue_free()
+
+func _drop_meat() -> void:
+    var parent := get_parent()
+    if parent == null:
+        return
+    var pk := Pickup.new()
+    pk.item_id = "raw_meat"
+    pk.display_name = "Raw Meat"
+    pk.amount = 2 if is_predator else 1
+    parent.add_child(pk)
+    pk.global_position = global_position + Vector3(0, 0.1, 0)
