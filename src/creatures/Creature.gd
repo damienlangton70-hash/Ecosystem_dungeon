@@ -43,6 +43,7 @@ var _pounce_timer := 0.0
 var _pounce_dir := Vector3.ZERO
 var _home := Vector3.ZERO
 var _body_mat: StandardMaterial3D
+var _sfx: AudioStreamPlayer3D
 
 func _ready() -> void:
     health = max_health
@@ -73,6 +74,9 @@ func _build_body() -> void:
     _body_mat.roughness = 0.9
     mesh.material_override = _body_mat
     add_child(mesh)
+    _sfx = AudioStreamPlayer3D.new()
+    _sfx.unit_size = 6.0
+    add_child(_sfx)
 
 func _glow(color: Color, on: bool) -> void:
     if _body_mat == null:
@@ -163,7 +167,10 @@ func _physics_process(delta: float) -> void:
         elif _attack_cd <= 0.0:
             _telegraph = true
             _windup = WINDUP_TIME
-            _glow(Color(1.0, 0.25, 0.15), true)  # red wind-up tell
+            _glow(Color(1.0, 0.25, 0.15), true)
+            if _sfx != null:
+                _sfx.stream = Audio.get_stream("growl")
+                _sfx.play()  # red wind-up tell
 
     velocity.x = desired.x
     velocity.z = desired.z
