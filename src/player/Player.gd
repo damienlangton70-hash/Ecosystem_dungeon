@@ -42,6 +42,7 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity", 
 var _pivot: Node3D
 var _camera: Camera3D
 var _weapon_pivot: Node3D
+var _sfx: AudioStreamPlayer
 var survival
 
 var _attack_timer := 0.0
@@ -61,6 +62,9 @@ func _ready() -> void:
     _build_camera()
     _build_weapon()
     _build_survival()
+    _sfx = AudioStreamPlayer.new()
+    _sfx.volume_db = -6.0
+    add_child(_sfx)
     add_to_group("player")
     Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -137,6 +141,12 @@ func _flash(msg: String) -> void:
     status_text = msg
     _status_timer = 3.0
 
+func _play_sfx(name: String) -> void:
+    if _sfx == null:
+        return
+    _sfx.stream = Audio.get_stream(name)
+    _sfx.play()
+
 func count_category(cat: String) -> int:
     var n := 0
     for id in inventory:
@@ -199,11 +209,13 @@ func _try_attack(kind: String) -> void:
     _attack_total = a["time"]
     _attack_timer = a["time"]
     _hit_done = false
+    _play_sfx("whoosh")
 
 func _do_hit() -> void:
     var a: Dictionary = HEAVY if _attack_type == "heavy" else LIGHT
     var origin := global_position
     var fwd := -global_transform.basis.z
+    var landed := false
     for c in get_tree().get_nodes_in_group("creatures"):
         if not (c is Node3D):
             continue
@@ -212,6 +224,9 @@ func _do_hit() -> void:
         if to.length() <= a["range"] and fwd.dot(to.normalized()) > 0.30:
             if c.has_method("take_damage"):
                 c.take_damage(a["damage"], a["poise"])
+                landed = true
+    if landed:
+        _play_sfx("thud")
 
 func _update_weapon() -> void:
     if _weapon_pivot == null:
@@ -272,6 +287,7 @@ func _build_campfire() -> void:
     fire.global_position = global_position + fwd * 1.6
     fire.global_position.y = 0.0
     _flash("Built a campfire")
+    _play_sfx("chime")
 
 func _first_of_category(cat: String) -> String:
     for id in inventory:
@@ -297,6 +313,7 @@ func _cook() -> void:
     var meal := Recipes.make_meal(herb, fruit)
     meals.append(meal)
     _flash("Cooked %s" % meal["name"])
+    _play_sfx("chime")
 
 func _eat() -> void:
     if meals.size() > 0:
@@ -307,6 +324,7 @@ func _eat() -> void:
         for b in m["buffs"]:
             active_buffs.append({"type": b["type"], "mag": b["mag"], "rem": b["dur"]})
         _flash("Ate %s" % m["name"])
+        _play_sfx("chime")
     elif int(inventory.get("raw_meat", 0)) > 0:
         inventory["raw_meat"] -= 1
         if survival != null:
@@ -346,6 +364,7 @@ func take_damage(amount: float) -> void:
         return
     health -= amount * (1.0 - _defense())
     _hitstun = 0.2
+    _play_sfx("hurt")
     if health <= 0.0:
         _respawn()
 
