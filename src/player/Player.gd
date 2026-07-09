@@ -1,9 +1,8 @@
 class_name Player
 extends CharacterBody3D
-## Third-person player controller with a Dark Souls-style skill-combat core:
-## stamina-gated light attack, dodge-roll with invulnerability frames, and
-## right-click lock-on. Health + hunger + stamina drive the survival loop.
-## The Mechanics agent extends this (heavy attacks, weapons, poise, parries).
+## Third-person controller with a skill-combat core AND the survival/cooking loop:
+## butcher downed creatures for raw meat, build a campfire, cook raw -> cooked,
+## and eat to restore hunger. Starvation drains health, so food matters.
 
 const WALK_SPEED := 4.5
 const SPRINT_SPEED := 7.5
@@ -20,8 +19,19 @@ const DODGE_SPEED := 11.0
 const DODGE_TIME := 0.45
 const IFRAME_TIME := 0.35
 
+const INTERACT_RANGE := 2.8
+const COOK_RANGE := 3.6
+const STARVE_DPS := 4.0
+const FOOD_COOKED := 45.0
+const HEAL_COOKED := 10.0
+const FOOD_RAW := 12.0
+
 var max_health := 100.0
 var health := 100.0
+
+var inventory := {"raw_meat": 0, "cooked_meat": 0}
+var status_text := ""
+var _status_timer := 0.0
 
 var _yaw := 0.0
 var _pitch := -0.26
@@ -37,7 +47,7 @@ var _iframe_timer := 0.0
 var _dodge_dir := Vector3.ZERO
 var _hitstun := 0.0
 var _spawn_point := Vector3.ZERO
-var lock_target = null  # a Creature, or null
+var lock_target = null
 
 func _ready() -> void:
     _spawn_point = global_position
@@ -91,6 +101,10 @@ func is_dodging() -> bool:
 func is_invulnerable() -> bool:
     return _iframe_timer > 0.0
 
+func _flash(msg: String) -> void:
+    status_text = msg
+    _status_timer = 3.0
+
 func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
         _yaw -= event.relative.x * MOUSE_SENS
@@ -104,14 +118,36 @@ func _unhandled_input(event: InputEvent) -> void:
         elif event.button_index == MOUSE_BUTTON_RIGHT:
             _toggle_lock()
     elif event is InputEventKey and event.pressed and not event.echo:
-        if event.keycode == KEY_CTRL:
-            _try_dodge()
-        elif event.keycode == KEY_ESCAPE:
-            if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-                Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-            else:
-                Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+        match event.keycode:
+            KEY_CTRL:
+                _try_dodge()
+            KEY_E:
+                _collect()
+            KEY_B:
+                _build_campfire()
+            KEY_C:
+                _cook()
+            KEY_F:
+                _eat()
+            KEY_ESCAPE:
+                if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+                    Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+                else:
+                    Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
+func _nearest_in_group(group: String, rng: float):
+    var best = null
+    var best_d := rng
+    for n in get_tree().get_nodes_in_group(group):
+        if not (n is Node3D):
+            continue
+        var d := global_position.distance_to(n.global_position)
+        if d < best_d:
+            best_d = d
+            best = n
+    return best
+
+# ---------- combat ----------
 func _try_attack() -> void:
     if is_attacking() or is_dodging():
         return
@@ -146,29 +182,59 @@ func _toggle_lock() -> void:
     if lock_target != null:
         lock_target = null
         return
-    var best = null
-    var best_d := 20.0
-    for c in get_tree().get_nodes_in_group("creatures"):
-        if not (c is Node3D):
-            continue
-        var d := global_position.distance_to(c.global_position)
-        if d < best_d:
-            best_d = d
-            best = c
-    lock_target = best
+    lock_target = _nearest_in_group("creatures", 20.0)
 
-func _input_dir() -> Vector3:
-    var v := Vector3.ZERO
-    if Input.is_physical_key_pressed(KEY_W):
-        v.z -= 1.0
-    if Input.is_physical_key_pressed(KEY_S):
-        v.z += 1.0
-    if Input.is_physical_key_pressed(KEY_A):
-        v.x -= 1.0
-    if Input.is_physical_key_pressed(KEY_D):
-        v.x += 1.0
-    return transform.basis * v
+# ---------- survival / cooking loop ----------
+func _collect() -> void:
+    var p = _nearest_in_group("pickups", INTERACT_RANGE)
+    if p == null:
+        _flash("Nothing to butcher nearby")
+        return
+    var id: String = p.item_id
+    var amt: int = p.amount
+    inventory[id] = inventory.get(id, 0) + amt
+    _flash("Butchered: +%d %s" % [amt, p.display_name])
+    p.queue_free()
 
+func _build_campfire() -> void:
+    var parent := get_parent()
+    if parent == null:
+        return
+    var fire := Campfire.new()
+    parent.add_child(fire)
+    var fwd := -global_transform.basis.z
+    fire.global_position = global_position + fwd * 1.6
+    fire.global_position.y = 0.0
+    _flash("Built a campfire")
+
+func _cook() -> void:
+    var fire = _nearest_in_group("campfires", COOK_RANGE)
+    if fire == null:
+        _flash("Need a campfire to cook (press B to build)")
+        return
+    if inventory.get("raw_meat", 0) <= 0:
+        _flash("No raw meat to cook")
+        return
+    inventory["raw_meat"] -= 1
+    inventory["cooked_meat"] = inventory.get("cooked_meat", 0) + 1
+    _flash("Cooked raw meat -> cooked meat")
+
+func _eat() -> void:
+    if inventory.get("cooked_meat", 0) > 0:
+        inventory["cooked_meat"] -= 1
+        if survival != null:
+            survival.feed(FOOD_COOKED)
+        health = minf(max_health, health + HEAL_COOKED)
+        _flash("Ate cooked meat (+%d food, +%d hp)" % [int(FOOD_COOKED), int(HEAL_COOKED)])
+    elif inventory.get("raw_meat", 0) > 0:
+        inventory["raw_meat"] -= 1
+        if survival != null:
+            survival.feed(FOOD_RAW)
+        _flash("Ate raw meat (+%d food — better cooked)" % int(FOOD_RAW))
+    else:
+        _flash("Nothing to eat")
+
+# ---------- damage / life ----------
 func take_damage(amount: float) -> void:
     if is_invulnerable():
         return
@@ -184,19 +250,41 @@ func _respawn() -> void:
     lock_target = null
     if survival != null:
         survival.hunger = survival.max_hunger
+    _flash("You black out... and wake at the entrance")
+
+func _input_dir() -> Vector3:
+    var v := Vector3.ZERO
+    if Input.is_physical_key_pressed(KEY_W):
+        v.z -= 1.0
+    if Input.is_physical_key_pressed(KEY_S):
+        v.z += 1.0
+    if Input.is_physical_key_pressed(KEY_A):
+        v.x -= 1.0
+    if Input.is_physical_key_pressed(KEY_D):
+        v.x += 1.0
+    return transform.basis * v
 
 func _physics_process(delta: float) -> void:
     _attack_timer = maxf(_attack_timer - delta, 0.0)
     _dodge_timer = maxf(_dodge_timer - delta, 0.0)
     _iframe_timer = maxf(_iframe_timer - delta, 0.0)
     _hitstun = maxf(_hitstun - delta, 0.0)
+    if _status_timer > 0.0:
+        _status_timer -= delta
+        if _status_timer <= 0.0:
+            status_text = ""
+
+    # Starvation: empty stomach drains health.
+    if survival != null and survival.hunger <= 0.0:
+        health -= STARVE_DPS * delta
+        if health <= 0.0:
+            _respawn()
 
     if not is_on_floor():
         velocity.y -= _gravity * delta
     elif Input.is_physical_key_pressed(KEY_SPACE) and not is_dodging():
         velocity.y = JUMP_VELOCITY
 
-    # Lock-on keeps the player facing the target.
     if lock_target != null and is_instance_valid(lock_target):
         var ft := Vector3(lock_target.global_position.x, global_position.y, lock_target.global_position.z)
         if global_position.distance_to(ft) > 0.4:
