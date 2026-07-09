@@ -43,34 +43,66 @@ The first genuinely fun 10 minutes.
 - [ ] Populations per species; predators hunt prey; day/rest cycle ticks the sim.
 - [ ] Over-hunting consequence: deplete a species → global hostility rises → animals notice
       you sooner and hit harder (wire `Ecosystem.aggression/awareness_multiplier`).
+      *(Design ready: per-species awareness/aggression scaling + over-hunting cascade rules in
+      `docs/CREATURE_BEHAVIOUR.md` and `data/lore.json`.)*
 - [ ] On-screen/diegetic feedback that the dungeon is "stirred up".
 
 ### M3 — Survival & Shelter Depth
 - [ ] Thirst + body temperature; cold deeper down.
 - [ ] Shelter building: tent, den, and **magic circle** cook-point; rest to recover.
+      *(Design ready: shelter/craft items in `docs/ITEMS.md`.)*
 - [ ] Cooked-food buffs; spoilage; a simple crafting/inventory pass.
+      *(Design ready: buff + spoilage rules in `docs/RECIPES.md` + `data/lore.json`.)*
 
 ### M4 — Descend: Floors 2–5
 - [ ] Floors 2–5 as distinct full environments, each deeper, darker, deadlier.
 - [ ] Full 30-monster / 5-tier food web populated across floors (see `FOOD_WEB.md`).
+      *(Design ready: per-species floors, stats & behaviour in `docs/BESTIARY.md`,
+      `docs/CREATURE_BEHAVIOUR.md`, `data/lore.json`.)*
 - [ ] 3 trees, 10 fruit bushes, 10 herb/spice types, 10 hostile insects placed per biome.
+      *(Design ready: flora effects/placement + insect hazards in `docs/ITEMS.md`,
+      `docs/BESTIARY.md`, `data/lore.json`.)*
 - [ ] Tier-appropriate apex encounters gating the descent.
 
 ### M5 — Content, Polish & Ship
 - [ ] Recipe breadth; bestiary/journal UI; save/load.
+      *(Content ready: 30 dishes in `docs/RECIPES.md`; full bestiary text in `docs/BESTIARY.md` —
+      UI still to build.)*
 - [ ] Audio & music pass; options menu; controller support.
 - [ ] Reliable Windows/Linux/macOS installers via CI releases.
 
 ---
 
 ## Next up (for the very next run)
+
+The Lore team has now shipped the full design layer **ahead of production** (`docs/BESTIARY.md`,
+`docs/CREATURE_BEHAVIOUR.md`, `docs/RECIPES.md`, `docs/ITEMS.md`, `data/lore.json`) — every item
+below is backed by concrete spec + loadable data, so implementation isn't blocked on design.
+(The Gloamstalker Lynx just added in M1 pt.5 is a good proof: its ambush/pounce behaviour matches
+the ambush-predator archetype in `docs/CREATURE_BEHAVIOUR.md`.)
+
 1. **Content:** a second prey species + more flora variety; balance the new Lynx encounter.
+   *(Ready: Grotto Springhare / Blind Vole / Deep Quail prey stats + behaviour, Lynx tuning values,
+   and flora effects/placement in `CREATURE_BEHAVIOUR.md`, `ITEMS.md`, `data/lore.json`.)*
 2. **Cooking depth:** food spoilage; signature recipes with stronger combined buffs.
+   *(Ready: spoilage + Bittersalt preservation, butchery-quality tiers, Cave Saffron amplification,
+   and 30 dishes with combined buffs in `docs/RECIPES.md` + `data/lore.json`.)*
 3. **Audio:** a low cave-ambience bed and basic combat / creature / fire SFX.
 4. **Descend:** make the shaft load Floor 2 (The Rootways) as a second environment.
+   *(Ready: all Floor 2 / Tier 1–3 species + Rootways ecology in the bestiary + behaviour spec.)*
 5. **Combat polish:** player poise/stagger, a parry, and hit VFX/juice.
+   *(Ready: per-archetype attack wind-up/recovery/tell timings in `CREATURE_BEHAVIOUR.md`, tuned to
+   the player's existing i-frame/dodge constants.)*
 
 ## Done recently
+- **Lore layer — design one step ahead of production (this run):** full **BESTIARY** (30 creatures +
+  10 insects; art/silhouette notes for Graphics, danger cues for Mechanics); **CREATURE_BEHAVIOUR**
+  (9 implementable behaviour archetypes + a 40-species table mapped onto the real
+  `src/creatures/Creature.gd` state machine and the Ecosystem API, with attack tells tuned to the
+  player's i-frame/dodge constants — the M1 pt.5 Lynx follows its ambush-predator archetype);
+  **RECIPES** (30 original dishes + spoilage/detox/butchery rules + discovery model); **ITEMS**
+  (all flora, meat cuts, craft/shelter items); and a validated machine-readable **`data/lore.json`**
+  production can load directly. All original / legally clean; canon cross-checked against `FOOD_WEB.md`.
 - **M1 pt.5:** added the **Gloamstalker Lynx** (Tier-3) — an ambush predator that stalks then
   pounces, guarding the descent. Creature AI gained ambush/pounce behaviour + per-species poise.
 - **M1 pt.4:** combat depth — visible blade + swing, light (LMB) & committed heavy (RMB) attacks,
@@ -89,3 +121,15 @@ The first genuinely fun 10 minutes.
 - **Headless noise:** `Parameter "m" is null` from the dummy renderer is expected and ignored
   by `validate.sh`; never treat it as a failure.
 - **3D art ceiling:** AI can't hand-sculpt high-poly models — commit to stylized low-poly.
+- **Lore now leads production.** Design/content for M2–M5 is written ahead of the code; when a
+  system is implemented it should consume the matching doc + `data/lore.json` rather than
+  re-inventing values, and Lore should keep extending the layer so code is never design-blocked.
+- **A few ecology values need a Mechanics/human tuning call** (flagged by the Lore team): pack
+  "one-attacker-commits" fairness, attack wind-up floor (~0.35–0.55s), Stonehide Rhinox charge
+  damage, the Hollow Stag keystone hostility-spike value, and whether insects are true swarm
+  entities vs. individually-pathed creatures (a real build-cost fork).
+- **Butchery-quality tiers** (Botched/Clean/Precise → meal-quality multipliers) are a *new* proposed
+  mechanic derived from the Design Bible, not yet in `FOOD_WEB.md` — confirm before deeper cooking.
+- **Real headless CI still needs the Workflows permission:** grant the GitHub app **Workflows** and
+  move `ci/build.yml` → `.github/workflows/build.yml` so `tools/validate.sh` runs on every push.
+  (This run's changes are docs + one unreferenced JSON — non-code — so the build is unaffected.)
