@@ -1,8 +1,9 @@
 class_name Player
 extends CharacterBody3D
-## Third-person controller with a skill-combat core AND the survival/cooking loop:
-## butcher downed creatures for raw meat, build a campfire, cook raw -> cooked,
-## and eat to restore hunger. Starvation drains health, so food matters.
+## Third-person controller: skill-combat core + the survival/cooking loop.
+## Hunt -> butcher -> forage -> build campfire -> cook (meat + herb/fruit) ->
+## eat a meal that restores hunger, heals, and applies timed buffs. Starvation
+## drains health; buffs (regen / stamina / defense / warmth) reward good cooking.
 
 const WALK_SPEED := 4.5
 const SPRINT_SPEED := 7.5
@@ -22,14 +23,14 @@ const IFRAME_TIME := 0.35
 const INTERACT_RANGE := 2.8
 const COOK_RANGE := 3.6
 const STARVE_DPS := 4.0
-const FOOD_COOKED := 45.0
-const HEAL_COOKED := 10.0
 const FOOD_RAW := 12.0
 
 var max_health := 100.0
 var health := 100.0
 
-var inventory := {"raw_meat": 0, "cooked_meat": 0}
+var inventory := {"raw_meat": 0}   # item_id -> count (meat + foraged ingredients)
+var meals: Array = []              # cooked dishes ready to eat
+var active_buffs: Array = []       # [{type, mag, rem}]
 var status_text := ""
 var _status_timer := 0.0
 
@@ -39,7 +40,7 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity", 
 
 var _pivot: Node3D
 var _camera: Camera3D
-var survival  # SurvivalStats instance
+var survival
 
 var _attack_timer := 0.0
 var _dodge_timer := 0.0
@@ -104,6 +105,13 @@ func is_invulnerable() -> bool:
 func _flash(msg: String) -> void:
     status_text = msg
     _status_timer = 3.0
+
+func count_category(cat: String) -> int:
+    var n := 0
+    for id in inventory:
+        if Recipes.INGREDIENTS.has(id) and Recipes.INGREDIENTS[id]["category"] == cat:
+            n += int(inventory[id])
+    return n
 
 func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
@@ -187,14 +195,20 @@ func _toggle_lock() -> void:
 # ---------- survival / cooking loop ----------
 func _collect() -> void:
     var p = _nearest_in_group("pickups", INTERACT_RANGE)
-    if p == null:
-        _flash("Nothing to butcher nearby")
+    if p != null:
+        var id: String = p.item_id
+        inventory[id] = int(inventory.get(id, 0)) + int(p.amount)
+        _flash("Butchered: +%d %s" % [int(p.amount), p.display_name])
+        p.queue_free()
         return
-    var id: String = p.item_id
-    var amt: int = p.amount
-    inventory[id] = inventory.get(id, 0) + amt
-    _flash("Butchered: +%d %s" % [amt, p.display_name])
-    p.queue_free()
+    var f = _nearest_in_group("forageables", INTERACT_RANGE)
+    if f != null and not f.harvested:
+        var amt: int = f.harvest()
+        if amt > 0:
+            inventory[f.item_id] = int(inventory.get(f.item_id, 0)) + amt
+            _flash("Foraged: +%d %s" % [amt, f.display_name])
+        return
+    _flash("Nothing to gather nearby")
 
 func _build_campfire() -> void:
     var parent := get_parent()
@@ -207,26 +221,41 @@ func _build_campfire() -> void:
     fire.global_position.y = 0.0
     _flash("Built a campfire")
 
+func _first_of_category(cat: String) -> String:
+    for id in inventory:
+        if int(inventory[id]) > 0 and Recipes.INGREDIENTS.has(id) and Recipes.INGREDIENTS[id]["category"] == cat:
+            return id
+    return ""
+
 func _cook() -> void:
     var fire = _nearest_in_group("campfires", COOK_RANGE)
     if fire == null:
         _flash("Need a campfire to cook (press B to build)")
         return
-    if inventory.get("raw_meat", 0) <= 0:
+    if int(inventory.get("raw_meat", 0)) <= 0:
         _flash("No raw meat to cook")
         return
+    var herb := _first_of_category("herb")
+    var fruit := _first_of_category("fruit")
     inventory["raw_meat"] -= 1
-    inventory["cooked_meat"] = inventory.get("cooked_meat", 0) + 1
-    _flash("Cooked raw meat -> cooked meat")
+    if herb != "":
+        inventory[herb] -= 1
+    if fruit != "":
+        inventory[fruit] -= 1
+    var meal := Recipes.make_meal(herb, fruit)
+    meals.append(meal)
+    _flash("Cooked %s" % meal["name"])
 
 func _eat() -> void:
-    if inventory.get("cooked_meat", 0) > 0:
-        inventory["cooked_meat"] -= 1
+    if meals.size() > 0:
+        var m: Dictionary = meals.pop_back()
         if survival != null:
-            survival.feed(FOOD_COOKED)
-        health = minf(max_health, health + HEAL_COOKED)
-        _flash("Ate cooked meat (+%d food, +%d hp)" % [int(FOOD_COOKED), int(HEAL_COOKED)])
-    elif inventory.get("raw_meat", 0) > 0:
+            survival.feed(m["food"])
+        health = minf(max_health, health + m["heal"])
+        for b in m["buffs"]:
+            active_buffs.append({"type": b["type"], "mag": b["mag"], "rem": b["dur"]})
+        _flash("Ate %s" % m["name"])
+    elif int(inventory.get("raw_meat", 0)) > 0:
         inventory["raw_meat"] -= 1
         if survival != null:
             survival.feed(FOOD_RAW)
@@ -234,11 +263,36 @@ func _eat() -> void:
     else:
         _flash("Nothing to eat")
 
+func _defense() -> float:
+    var d := 0.0
+    for b in active_buffs:
+        if b["type"] == "defense":
+            d += b["mag"]
+    return clampf(d, 0.0, 0.8)
+
+func _tick_buffs(delta: float) -> void:
+    var i := active_buffs.size() - 1
+    while i >= 0:
+        var b: Dictionary = active_buffs[i]
+        b["rem"] -= delta
+        match b["type"]:
+            "regen":
+                health = minf(max_health, health + b["mag"] * delta)
+            "stamina":
+                if survival != null:
+                    survival.stamina = minf(survival.max_stamina, survival.stamina + b["mag"] * delta)
+            "warm":
+                if survival != null:
+                    survival.temperature = move_toward(survival.temperature, 32.0, 6.0 * delta)
+        if b["rem"] <= 0.0:
+            active_buffs.remove_at(i)
+        i -= 1
+
 # ---------- damage / life ----------
 func take_damage(amount: float) -> void:
     if is_invulnerable():
         return
-    health -= amount
+    health -= amount * (1.0 - _defense())
     _hitstun = 0.2
     if health <= 0.0:
         _respawn()
@@ -248,6 +302,7 @@ func _respawn() -> void:
     global_position = _spawn_point
     velocity = Vector3.ZERO
     lock_target = null
+    active_buffs.clear()
     if survival != null:
         survival.hunger = survival.max_hunger
     _flash("You black out... and wake at the entrance")
@@ -269,12 +324,12 @@ func _physics_process(delta: float) -> void:
     _dodge_timer = maxf(_dodge_timer - delta, 0.0)
     _iframe_timer = maxf(_iframe_timer - delta, 0.0)
     _hitstun = maxf(_hitstun - delta, 0.0)
+    _tick_buffs(delta)
     if _status_timer > 0.0:
         _status_timer -= delta
         if _status_timer <= 0.0:
             status_text = ""
 
-    # Starvation: empty stomach drains health.
     if survival != null and survival.hunger <= 0.0:
         health -= STARVE_DPS * delta
         if health <= 0.0:
