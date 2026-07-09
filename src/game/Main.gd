@@ -51,10 +51,12 @@ func _setup_environment() -> void:
     var we := WorldEnvironment.new()
     var env := Environment.new()
     env.background_mode = Environment.BG_COLOR
-    env.background_color = Palette.BG
+    env.background_color = Palette.AMBIENT
     env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+    # Ambient is a floor, not a source — the glow flora/water/fire cast the real
+    # light; ambient just keeps unlit surfaces from reading as pure black (ART_DIRECTION §3.1).
     env.ambient_light_color = Palette.AMBIENT
-    env.ambient_light_energy = 0.45
+    env.ambient_light_energy = 0.5
     # Filmic tonemap for contrast + controlled highlights.
     env.tonemap_mode = Environment.TONE_MAPPER_ACES
     env.tonemap_exposure = 1.05
@@ -75,16 +77,17 @@ func _setup_environment() -> void:
     env.adjustment_saturation = 1.12
     # Depth fog.
     env.fog_enabled = true
-    env.fog_light_color = Color(0.05, 0.08, 0.12)
-    env.fog_density = 0.02
+    env.fog_light_color = Color(Palette.FOG.r, Palette.FOG.g, Palette.FOG.b)
+    env.fog_density = 0.018
+    env.fog_sun_scatter = 0.0
     we.environment = env
     add_child(we)
 
 func _setup_light() -> void:
     var key := DirectionalLight3D.new()
     key.rotation_degrees = Vector3(-60, -40, 0)
-    key.light_energy = 0.25
-    key.light_color = Color(0.5, 0.6, 0.8)
+    key.light_energy = 0.18
+    key.light_color = Palette.GLOW_DIM
     add_child(key)
 
 func _build_ecosystem() -> void:
@@ -117,7 +120,7 @@ func _register_from_lore(id: String, floor: int) -> void:
     s.diet = diet
     _ecosystem.register_species(s)
 
-func _add_box(pos: Vector3, size: Vector3, color: Color, rough := 0.95) -> StaticBody3D:
+func _add_box(pos: Vector3, size: Vector3, mat: StandardMaterial3D) -> StaticBody3D:
     var body := StaticBody3D.new()
     body.position = pos
     var col := CollisionShape3D.new()
@@ -129,59 +132,10 @@ func _add_box(pos: Vector3, size: Vector3, color: Color, rough := 0.95) -> Stati
     var bm := BoxMesh.new()
     bm.size = size
     mesh.mesh = bm
-    var mat := StandardMaterial3D.new()
-    mat.albedo_color = color
-    mat.roughness = rough
     mesh.material_override = mat
     body.add_child(mesh)
     add_child(body)
     return body
-
-func _add_glowcap(pos: Vector3, height: float, glow: Color) -> void:
-    var trunk := StaticBody3D.new()
-    trunk.position = pos
-    var col := CollisionShape3D.new()
-    var cyl := CylinderShape3D.new()
-    cyl.height = height
-    cyl.radius = 0.5
-    col.shape = cyl
-    col.position = Vector3(0, height * 0.5, 0)
-    trunk.add_child(col)
-    var tm := MeshInstance3D.new()
-    var cm := CylinderMesh.new()
-    cm.height = height
-    cm.top_radius = 0.35
-    cm.bottom_radius = 0.6
-    tm.mesh = cm
-    tm.position = Vector3(0, height * 0.5, 0)
-    var tmat := StandardMaterial3D.new()
-    tmat.albedo_color = Color(0.20, 0.22, 0.20)
-    tm.material_override = tmat
-    trunk.add_child(tm)
-    add_child(trunk)
-
-    var cap := MeshInstance3D.new()
-    var sm := SphereMesh.new()
-    sm.radius = 1.6
-    sm.height = 2.2
-    cap.mesh = sm
-    cap.position = pos + Vector3(0, height + 0.4, 0)
-    var capmat := StandardMaterial3D.new()
-    capmat.albedo_color = glow
-    capmat.emission_enabled = true
-    capmat.emission = glow
-    capmat.emission_energy_multiplier = 3.6
-    capmat.rim_enabled = true
-    capmat.rim = 0.4
-    cap.material_override = capmat
-    add_child(cap)
-
-    var light := OmniLight3D.new()
-    light.position = pos + Vector3(0, height + 0.4, 0)
-    light.light_color = glow
-    light.light_energy = 2.2
-    light.omni_range = 16.0
-    add_child(light)
 
 func _add_glow_spot(pos: Vector3, glow: Color) -> void:
     var m := MeshInstance3D.new()
@@ -190,12 +144,7 @@ func _add_glow_spot(pos: Vector3, glow: Color) -> void:
     sm.height = 0.8
     m.mesh = sm
     m.position = pos
-    var mat := StandardMaterial3D.new()
-    mat.albedo_color = glow
-    mat.emission_enabled = true
-    mat.emission = glow
-    mat.emission_energy_multiplier = 2.8
-    m.material_override = mat
+    m.material_override = MaterialLib.glow(glow, 2.8)
     add_child(m)
     var l := OmniLight3D.new()
     l.position = pos
@@ -210,57 +159,66 @@ func _add_water(center: Vector3, size: Vector2) -> void:
     pm.size = size
     plane.mesh = pm
     plane.position = center
-    var mat := StandardMaterial3D.new()
-    mat.albedo_color = Color(0.10, 0.25, 0.35, 0.55)
-    mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-    mat.roughness = 0.1
-    mat.metallic = 0.2
-    mat.emission_enabled = true
-    mat.emission = Color(0.05, 0.15, 0.22)
-    mat.emission_energy_multiplier = 0.5
-    plane.material_override = mat
+    plane.material_override = MaterialLib.water()
     add_child(plane)
 
 func _build_floor1() -> void:
     var rng := RandomNumberGenerator.new()
     rng.randomize()
     # Large main cavern floor. Top surface at y=0, spans x[-80,80], z[-60,90].
-    _add_box(Vector3(0, -0.5, 15), Vector3(160, 1, 150), Color(0.13, 0.13, 0.15))
+    _add_box(Vector3(0, -0.5, 15), Vector3(160, 1, 150), MaterialLib.ground())
     # Perimeter walls (tall, to read as a cavern).
-    _add_box(Vector3(0, 5, 90), Vector3(160, 12, 1), Color(0.10, 0.10, 0.12))     # front
-    _add_box(Vector3(0, 5, -74), Vector3(160, 12, 1), Color(0.10, 0.10, 0.12))    # back (behind descent)
-    _add_box(Vector3(-80, 5, 8), Vector3(1, 12, 164), Color(0.10, 0.10, 0.12))    # left
-    _add_box(Vector3(80, 5, 8), Vector3(1, 12, 164), Color(0.10, 0.10, 0.12))     # right
+    _add_box(Vector3(0, 5, 90), Vector3(160, 12, 1), MaterialLib.wall())     # front
+    _add_box(Vector3(0, 5, -74), Vector3(160, 12, 1), MaterialLib.wall())    # back (behind descent)
+    _add_box(Vector3(-80, 5, 8), Vector3(1, 12, 164), MaterialLib.wall())    # left
+    _add_box(Vector3(80, 5, 8), Vector3(1, 12, 164), MaterialLib.wall())     # right
     # Entrance lip near spawn.
-    _add_box(Vector3(0, 0.6, 84), Vector3(18, 1.2, 2), Color(0.16, 0.15, 0.15))
+    _add_box(Vector3(0, 0.6, 84), Vector3(18, 1.2, 2), MaterialLib.entrance())
 
-    # Glowcap pillar-trees spread across the whole cavern (position, height, glow).
-    var caps := [
-        [Vector3(-12, 0, 55), 6.0, Color(0.25, 0.75, 0.85)],
-        [Vector3(14, 0, 48), 5.0, Color(0.30, 0.60, 0.95)],
-        [Vector3(-4, 0, 30), 7.5, Color(0.45, 0.40, 0.95)],
-        [Vector3(24, 0, 22), 5.5, Color(0.25, 0.80, 0.70)],
-        [Vector3(-26, 0, 12), 6.5, Color(0.30, 0.70, 0.90)],
-        [Vector3(6, 0, 2), 5.0, Color(0.55, 0.35, 0.90)],
-        [Vector3(-36, 0, -8), 6.0, Color(0.25, 0.78, 0.82)],
-        [Vector3(32, 0, -6), 5.5, Color(0.35, 0.55, 0.95)],
-        [Vector3(-10, 0, -26), 7.5, Color(0.45, 0.40, 0.92)],
-        [Vector3(22, 0, -36), 6.0, Color(0.28, 0.72, 0.86)],
-        [Vector3(-44, 0, -42), 5.0, Color(0.30, 0.66, 0.90)],
-        [Vector3(48, 0, 34), 6.5, Color(0.24, 0.80, 0.74)],
+    # Glowcap pillar-trees spread across the whole cavern (position, height, glow),
+    # cycling the three cold bioluminescence hues across the ring.
+    var glow_cycle := [Palette.GLOW_TEAL, Palette.GLOW_BLUE, Palette.GLOW_VIOLET]
+    var cap_specs := [
+        [Vector3(-12, 0, 55), 6.0],
+        [Vector3(14, 0, 48), 5.0],
+        [Vector3(-4, 0, 30), 7.5],
+        [Vector3(24, 0, 22), 5.5],
+        [Vector3(-26, 0, 12), 6.5],
+        [Vector3(6, 0, 2), 5.0],
+        [Vector3(-36, 0, -8), 6.0],
+        [Vector3(32, 0, -6), 5.5],
+        [Vector3(-10, 0, -26), 7.5],
+        [Vector3(22, 0, -36), 6.0],
+        [Vector3(-44, 0, -42), 5.0],
+        [Vector3(48, 0, 34), 6.5],
     ]
-    for c in caps:
-        _add_glowcap(c[0], c[1], c[2])
+    for i in range(cap_specs.size()):
+        var spec = cap_specs[i]
+        var tree := Flora.glowcap_tree(spec[1], glow_cycle[i % glow_cycle.size()])
+        tree.position = spec[0]
+        add_child(tree)
+
+    # Ironbark Deeproot landmarks — squat, dark hardwood mass, no glow.
+    for p in [Vector3(-58, 0, -18), Vector3(56, 0, 6), Vector3(-20, 0, 70), Vector3(38, 0, 62)]:
+        var ironbark := Flora.ironbark_tree(rng.randf_range(4.0, 5.0))
+        ironbark.position = p
+        add_child(ironbark)
 
     # Two water pools.
     _add_water(Vector3(-52, 0.08, 32), Vector2(30, 30))
     _add_water(Vector3(40, 0.08, -32), Vector2(22, 22))
 
+    # Weeping Palewillows near the water pools — the soft, curved-line flora note.
+    for p in [Vector3(-64, 0, 20), Vector3(-40, 0, 44), Vector3(50, 0, -20)]:
+        var willow := Flora.palewillow_tree(3.2)
+        willow.position = p
+        add_child(willow)
+
     # A rocky ridge along the east wall — a landmark to navigate by.
     for i in range(8):
         var rz := -52.0 + float(i) * 13.0
         var rh := rng.randf_range(3.0, 7.5)
-        _add_box(Vector3(64.0 + rng.randf_range(-4, 4), rh * 0.5, rz), Vector3(rng.randf_range(3, 6), rh, rng.randf_range(3, 6)), Color(0.15, 0.14, 0.14))
+        _add_box(Vector3(64.0 + rng.randf_range(-4, 4), rh * 0.5, rz), Vector3(rng.randf_range(3, 6), rh, rng.randf_range(3, 6)), MaterialLib.ridge())
 
     # Cover rocks scattered widely (a safe-ish clearing kept near the entrance).
     for i in range(36):
@@ -269,23 +227,23 @@ func _build_floor1() -> void:
         if Vector2(px, pz).distance_to(Vector2(0, 82)) < 10.0:
             continue
         var h := rng.randf_range(1.2, 3.6)
-        _add_box(Vector3(px, h * 0.5, pz), Vector3(rng.randf_range(1.0, 3.0), h, rng.randf_range(1.0, 3.0)), Color(0.14, 0.13, 0.14))
+        _add_box(Vector3(px, h * 0.5, pz), Vector3(rng.randf_range(1.0, 3.0), h, rng.randf_range(1.0, 3.0)), MaterialLib.stone())
 
     # Glow fungus scatter (emissive + light).
     for i in range(22):
-        _add_glow_spot(Vector3(rng.randf_range(-74, 74), 0.3, rng.randf_range(-56, 80)), Color(0.30, 0.80, 0.60))
+        _add_glow_spot(Vector3(rng.randf_range(-74, 74), 0.3, rng.randf_range(-56, 80)), Palette.GLOW_FUNGUS)
 
     _build_descent()
 
 func _build_descent() -> void:
     # Lower landing beyond the floor's back edge (floor ends at z=-60).
-    _add_box(Vector3(0, -3.0, -67), Vector3(26, 1, 16), Color(0.05, 0.05, 0.06))
+    _add_box(Vector3(0, -3.0, -67), Vector3(26, 1, 16), MaterialLib.stone_dark())
     # Ramp bridging floor edge (z=-60, y=0) down to the landing.
-    var ramp := _add_box(Vector3(0, -1.5, -61), Vector3(12, 0.6, 9), Color(0.10, 0.09, 0.10))
+    var ramp := _add_box(Vector3(0, -1.5, -61), Vector3(12, 0.6, 9), MaterialLib.stone())
     ramp.rotation.x = deg_to_rad(24)
     # Warning-glow markers at the lip.
-    _add_glow_spot(Vector3(-6, 0.3, -58), Color(0.90, 0.40, 0.30))
-    _add_glow_spot(Vector3(6, 0.3, -58), Color(0.90, 0.40, 0.30))
+    _add_glow_spot(Vector3(-6, 0.3, -58), Palette.WARN)
+    _add_glow_spot(Vector3(6, 0.3, -58), Palette.WARN)
     # Trigger.
     var area := Area3D.new()
     area.position = Vector3(0, -2.0, -68)
