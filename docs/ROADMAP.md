@@ -3,6 +3,9 @@
 The Studio Director reads this first every morning. Keep it current: check off what
 shipped, and always leave a concrete **Next up** list for the following run.
 
+> **Approved decisions are binding — read `docs/DECISIONS.md` and follow it.** If a decision
+> there conflicts with an older doc, DECISIONS.md wins.
+
 ## Guiding scope
 
 A complete game matching every spec is many weeks of small daily increments — the same
@@ -82,19 +85,24 @@ below is backed by concrete spec + loadable data, so implementation isn't blocke
 the ambush-predator archetype in `docs/CREATURE_BEHAVIOUR.md`.)
 
 1. **Descend:** make the shaft load Floor 2 (The Rootways) as a second, deeper environment.
+   Per **D3**, Floor 2 is **ground-based** (aerial deferred to Floor 3).
    *(Ready: all Floor 2 / Tier 1–3 species + Rootways ecology in the bestiary + behaviour spec.)*
 2. **Content:** a second prey species + more flora variety; balance the new Lynx encounter.
    *(Ready: Grotto Springhare / Blind Vole / Deep Quail prey stats + behaviour, Lynx tuning values,
    and flora effects/placement in `CREATURE_BEHAVIOUR.md`, `ITEMS.md`, `data/lore.json`.)*
-3. **Cooking depth:** food spoilage; signature recipes with stronger combined buffs.
-   *(Ready: spoilage + Bittersalt preservation, butchery-quality tiers, Cave Saffron amplification,
-   and 30 dishes with combined buffs in `docs/RECIPES.md` + `data/lore.json`.)*
-4. **Combat polish:** player poise/stagger, a parry, and hit VFX/juice.
-   *(Ready: per-archetype attack wind-up/recovery/tell timings in `CREATURE_BEHAVIOUR.md`, tuned to
-   the player's existing i-frame/dodge constants.)*
+3. **Cooking depth:** food spoilage; signature recipes with stronger combined buffs; butchery
+   quality (D1: ×0.60 / ×1.00 / ×1.25).
+   *(Ready: spoilage + Bittersalt preservation, Cave Saffron amplification, and 30 dishes in
+   `docs/RECIPES.md` + `data/lore.json`.)*
+4. **Combat polish:** player poise/stagger, a parry, hit VFX/juice; retrofit the Ashjackal tell (D6);
+   packs commit 1–2 attackers (D5).
+   *(Ready: per-archetype attack wind-up/recovery/tell timings in `CREATURE_BEHAVIOUR.md`.)*
 5. **Audio depth:** a warm music sting at camp; distinct per-creature calls.
 
 ## Done recently
+- **decisions:** Damien approved the open design calls — recorded in `docs/DECISIONS.md` (butchery
+  tiers, hybrid insects, flight deferred to Floor 3, pack fairness, Ashjackal tell, pinned Gorehorn/
+  keystone numbers, Hollow Stag stays uncookable). Binding for future builds.
 - **lore: originality rename** — Antler Warg -> **Rackjaw** and Stonehide Rhinox -> **Stonehide Gorehorn**, swept across all lore docs + `data/lore.json` + `FOOD_WEB.md`; removes external-IP name collisions (Warg = Tolkien/GoT, Rhinox = Transformers). Docs/data only, not in code yet — no gameplay impact.
 - **M1 pt.6:** procedural audio — cave-ambience bed, campfire crackle, and combat/creature SFX
   (whoosh / thud / growl / hurt / chime), synthesized in code (no binary assets).
@@ -127,12 +135,13 @@ the ambush-predator archetype in `docs/CREATURE_BEHAVIOUR.md`.)
 - **Lore now leads production.** Design/content for M2–M5 is written ahead of the code; when a
   system is implemented it should consume the matching doc + `data/lore.json` rather than
   re-inventing values, and Lore should keep extending the layer so code is never design-blocked.
-- **A few ecology values need a Mechanics/human tuning call** (flagged by the Lore team): pack
-  "one-attacker-commits" fairness, attack wind-up floor (~0.35–0.55s), Stonehide Gorehorn charge
-  damage, the Hollow Stag keystone hostility-spike value, and whether insects are true swarm
-  entities vs. individually-pathed creatures (a real build-cost fork).
-- **Butchery-quality tiers** (Botched/Clean/Precise → meal-quality multipliers) are a *new* proposed
-  mechanic derived from the Design Bible, not yet in `FOOD_WEB.md` — confirm before deeper cooking.
+- **Ecology decisions — RESOLVED (see `docs/DECISIONS.md`):** packs commit 1–2 attackers at a time
+  (D5); Ashjackal gets a 0.4–0.5s attack tell (D6); Gorehorn charge caps at 30% player HP (D7);
+  Hollow Stag keystone hostility floor = 0.75 (D7); insects are HYBRID — swarm-emitter for clouds,
+  individual creatures for large bugs (D2); aerial flight deferred to Floor 3 so Floor 2 ships
+  ground-based (D3). Remaining numbers accepted as provisional (tune in playtest).
+- **Butchery-quality tiers — RESOLVED (D1):** approved — Botched/Clean/Precise → ×0.60 / ×1.00 /
+  ×1.25 buff magnitude. Add a reference line to `FOOD_WEB.md`.
 - **Real headless CI still needs the Workflows permission:** grant the GitHub app **Workflows** and
   move `ci/build.yml` → `.github/workflows/build.yml` so `tools/validate.sh` runs on every push.
   (This run's changes are docs + one unreferenced JSON — non-code — so the build is unaffected.)
