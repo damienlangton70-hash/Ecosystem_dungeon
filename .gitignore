@@ -1,0 +1,16 @@
+# Godot 4 import cache (regenerated automatically)
+.godot/
+
+# Build output
+/build/
+*.pck
+*.exe
+*.x86_64
+*.dmg
+*.app
+*.zip
+
+# Editor / OS cruft
+*.tmp
+.DS_Store
+Thumbs.db
