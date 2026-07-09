@@ -60,6 +60,12 @@ func _build() -> void:
     _light.light_energy = 3.0
     _light.omni_range = 12.0
     add_child(_light)
+    var a := AudioStreamPlayer3D.new()
+    a.stream = Audio.get_stream("fire")
+    a.unit_size = 5.0
+    a.volume_db = -5.0
+    add_child(a)
+    a.play()
 
 func _process(delta: float) -> void:
     _t += delta
