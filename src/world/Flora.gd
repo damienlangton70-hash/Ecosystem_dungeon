@@ -72,7 +72,7 @@ static func glowcap_tree(height: float, glow: Color) -> Node3D:
     gill_mesh.radial_segments = 9
     gills.mesh = gill_mesh
     gills.position = Vector3(0, cap_y, 0)
-    gills.material_override = MaterialLib.glow(glow, 2.5)
+    gills.material_override = MaterialLib.glow(glow, 3.2)
     root.add_child(gills)
 
     var light := OmniLight3D.new()
