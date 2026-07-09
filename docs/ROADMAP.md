@@ -100,6 +100,10 @@ the ambush-predator archetype in `docs/CREATURE_BEHAVIOUR.md`.)
 5. **Audio depth:** a warm music sting at camp; distinct per-creature calls.
 
 ## Done recently
+- **data-driven wiring:** the game now loads `data/lore.json` (via new `LoreData`) — species
+  identity, tier, carrying capacity, aggression, awareness, diet, and flora names come from the
+  Lore layer; combat numbers derive from a per-tier tuning table. Exports bundle `data/*.json`.
+  Validated headless + the packaged build confirmed to ship and read the data.
 - **decisions:** Damien approved the open design calls — recorded in `docs/DECISIONS.md` (butchery
   tiers, hybrid insects, flight deferred to Floor 3, pack fairness, Ashjackal tell, pinned Gorehorn/
   keystone numbers, Hollow Stag stays uncookable). Binding for future builds.
