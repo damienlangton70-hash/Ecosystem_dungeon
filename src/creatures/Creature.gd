@@ -17,12 +17,15 @@ enum State { WANDER, FLEE, CHASE, ATTACK, STAGGER, DEAD }
 @export var detect_radius := 10.0
 @export var body_color := Color(0.8, 0.8, 0.75)
 @export var body_height := 1.2
+@export var ambush := false          # stalk slowly, then pounce when close
+@export var chase_speed_mult := 1.0  # speed burst while chasing
 
 const WINDUP_TIME := 0.55
 const STRIKE_REACH := 2.4
 const STAGGER_TIME := 0.9
 const POISE_REGEN := 8.0
 const ATTACK_COOLDOWN := 1.4
+const POUNCE_SPEED := 9.0
 
 var health := 30.0
 var poise := 30.0
@@ -36,6 +39,8 @@ var _attack_cd := 0.0
 var _windup := 0.0
 var _telegraph := false
 var _stagger_timer := 0.0
+var _pounce_timer := 0.0
+var _pounce_dir := Vector3.ZERO
 var _home := Vector3.ZERO
 var _body_mat: StandardMaterial3D
 
@@ -125,7 +130,7 @@ func _physics_process(delta: float) -> void:
         if global_position.distance_to(_home) > 22.0:
             _wander_dir = (_home - global_position).normalized()
             _wander_dir.y = 0.0
-        desired = _wander_dir * (move_speed * 0.5)
+        desired = _wander_dir * (move_speed * (0.25 if ambush else 0.5))
     elif state == State.FLEE and has_player:
         var away := global_position - _player.global_position
         away.y = 0.0
@@ -133,11 +138,17 @@ func _physics_process(delta: float) -> void:
     elif state == State.CHASE and has_player:
         var to := _player.global_position - global_position
         to.y = 0.0
-        desired = to.normalized() * move_speed
+        desired = to.normalized() * (move_speed * chase_speed_mult)
         if dist < 1.8:
             state = State.ATTACK
+            if ambush and to.length() > 0.1:
+                _pounce_timer = 0.28
+                _pounce_dir = to.normalized()
     elif state == State.ATTACK and has_player:
-        if dist > 2.8:
+        if _pounce_timer > 0.0:
+            _pounce_timer -= delta
+            desired = _pounce_dir * POUNCE_SPEED
+        elif dist > 2.8:
             _glow(Color.BLACK, false)
             _telegraph = false
             state = State.CHASE
