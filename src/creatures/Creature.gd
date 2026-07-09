@@ -72,8 +72,36 @@ func _build_body() -> void:
     _body_mat = StandardMaterial3D.new()
     _body_mat.albedo_color = body_color
     _body_mat.roughness = 0.9
+    _body_mat.rim_enabled = true
+    _body_mat.rim = 0.5
+    _body_mat.rim_tint = 0.3
     mesh.material_override = _body_mat
     add_child(mesh)
+    # Head so it reads as an animal, not a capsule (front is -Z).
+    var head := MeshInstance3D.new()
+    var hm := SphereMesh.new()
+    hm.radius = 0.30
+    hm.height = 0.48
+    head.mesh = hm
+    head.position = Vector3(0, body_height * 0.92, -0.30)
+    head.material_override = _body_mat
+    add_child(head)
+    # Glowing eyes for predators — a readable "this one bites" cue.
+    if is_predator:
+        var emat := StandardMaterial3D.new()
+        emat.albedo_color = Color(1.0, 0.7, 0.2)
+        emat.emission_enabled = true
+        emat.emission = Color(1.0, 0.55, 0.15)
+        emat.emission_energy_multiplier = 3.0
+        for sx in [-0.12, 0.12]:
+            var eye := MeshInstance3D.new()
+            var em := SphereMesh.new()
+            em.radius = 0.055
+            em.height = 0.11
+            eye.mesh = em
+            eye.position = Vector3(sx, body_height * 0.96, -0.52)
+            eye.material_override = emat
+            add_child(eye)
     _sfx = AudioStreamPlayer3D.new()
     _sfx.unit_size = 6.0
     add_child(_sfx)
