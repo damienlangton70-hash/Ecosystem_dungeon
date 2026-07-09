@@ -171,49 +171,74 @@ func _add_water(center: Vector3, size: Vector2) -> void:
 func _build_floor1() -> void:
     var rng := RandomNumberGenerator.new()
     rng.randomize()
-    # Main floor (top surface at y=0, spans z -24..36).
-    _add_box(Vector3(0, -0.5, 6), Vector3(64, 1, 60), Color(0.13, 0.13, 0.15))
-    # Perimeter walls.
-    _add_box(Vector3(0, 3, -34), Vector3(64, 8, 1), Color(0.10, 0.10, 0.12))
-    _add_box(Vector3(0, 3, 36), Vector3(64, 8, 1), Color(0.10, 0.10, 0.12))
-    _add_box(Vector3(-32, 3, 6), Vector3(1, 8, 60), Color(0.10, 0.10, 0.12))
-    _add_box(Vector3(32, 3, 6), Vector3(1, 8, 60), Color(0.10, 0.10, 0.12))
+    # Large main cavern floor. Top surface at y=0, spans x[-80,80], z[-60,90].
+    _add_box(Vector3(0, -0.5, 15), Vector3(160, 1, 150), Color(0.13, 0.13, 0.15))
+    # Perimeter walls (tall, to read as a cavern).
+    _add_box(Vector3(0, 5, 90), Vector3(160, 12, 1), Color(0.10, 0.10, 0.12))     # front
+    _add_box(Vector3(0, 5, -74), Vector3(160, 12, 1), Color(0.10, 0.10, 0.12))    # back (behind descent)
+    _add_box(Vector3(-80, 5, 8), Vector3(1, 12, 164), Color(0.10, 0.10, 0.12))    # left
+    _add_box(Vector3(80, 5, 8), Vector3(1, 12, 164), Color(0.10, 0.10, 0.12))     # right
     # Entrance lip near spawn.
-    _add_box(Vector3(0, 0.6, 33), Vector3(12, 1.2, 2), Color(0.16, 0.15, 0.15))
-    # Fungal grove.
-    _add_glowcap(Vector3(-6, 0, 2), 5.0, Color(0.25, 0.75, 0.85))
-    _add_glowcap(Vector3(5, 0, -3), 6.0, Color(0.35, 0.55, 0.95))
-    _add_glowcap(Vector3(-2, 0, -10), 4.5, Color(0.55, 0.35, 0.90))
-    _add_glowcap(Vector3(9, 0, 8), 5.5, Color(0.25, 0.80, 0.70))
-    # Water pool (west).
-    _add_water(Vector3(-20, 0.08, 10), Vector2(13, 13))
-    # Cover rocks.
-    for i in range(12):
-        var px := rng.randf_range(-28, 28)
-        var pz := rng.randf_range(-22, 30)
-        var h := rng.randf_range(1.2, 3.0)
-        _add_box(Vector3(px, h * 0.5, pz), Vector3(rng.randf_range(1.0, 2.5), h, rng.randf_range(1.0, 2.5)), Color(0.14, 0.13, 0.14))
-    # Glow fungus scatter.
-    for i in range(10):
-        _add_glow_spot(Vector3(rng.randf_range(-28, 28), 0.3, rng.randf_range(-22, 30)), Color(0.30, 0.80, 0.60))
-    # Descent shaft (far -z, reachable off the floor edge).
+    _add_box(Vector3(0, 0.6, 84), Vector3(18, 1.2, 2), Color(0.16, 0.15, 0.15))
+
+    # Glowcap pillar-trees spread across the whole cavern (position, height, glow).
+    var caps := [
+        [Vector3(-12, 0, 55), 6.0, Color(0.25, 0.75, 0.85)],
+        [Vector3(14, 0, 48), 5.0, Color(0.30, 0.60, 0.95)],
+        [Vector3(-4, 0, 30), 7.5, Color(0.45, 0.40, 0.95)],
+        [Vector3(24, 0, 22), 5.5, Color(0.25, 0.80, 0.70)],
+        [Vector3(-26, 0, 12), 6.5, Color(0.30, 0.70, 0.90)],
+        [Vector3(6, 0, 2), 5.0, Color(0.55, 0.35, 0.90)],
+        [Vector3(-36, 0, -8), 6.0, Color(0.25, 0.78, 0.82)],
+        [Vector3(32, 0, -6), 5.5, Color(0.35, 0.55, 0.95)],
+        [Vector3(-10, 0, -26), 7.5, Color(0.45, 0.40, 0.92)],
+        [Vector3(22, 0, -36), 6.0, Color(0.28, 0.72, 0.86)],
+        [Vector3(-44, 0, -42), 5.0, Color(0.30, 0.66, 0.90)],
+        [Vector3(48, 0, 34), 6.5, Color(0.24, 0.80, 0.74)],
+    ]
+    for c in caps:
+        _add_glowcap(c[0], c[1], c[2])
+
+    # Two water pools.
+    _add_water(Vector3(-52, 0.08, 32), Vector2(30, 30))
+    _add_water(Vector3(40, 0.08, -32), Vector2(22, 22))
+
+    # A rocky ridge along the east wall — a landmark to navigate by.
+    for i in range(8):
+        var rz := -52.0 + float(i) * 13.0
+        var rh := rng.randf_range(3.0, 7.5)
+        _add_box(Vector3(64.0 + rng.randf_range(-4, 4), rh * 0.5, rz), Vector3(rng.randf_range(3, 6), rh, rng.randf_range(3, 6)), Color(0.15, 0.14, 0.14))
+
+    # Cover rocks scattered widely (a safe-ish clearing kept near the entrance).
+    for i in range(36):
+        var px := rng.randf_range(-74, 74)
+        var pz := rng.randf_range(-56, 78)
+        if Vector2(px, pz).distance_to(Vector2(0, 82)) < 10.0:
+            continue
+        var h := rng.randf_range(1.2, 3.6)
+        _add_box(Vector3(px, h * 0.5, pz), Vector3(rng.randf_range(1.0, 3.0), h, rng.randf_range(1.0, 3.0)), Color(0.14, 0.13, 0.14))
+
+    # Glow fungus scatter (emissive + light).
+    for i in range(22):
+        _add_glow_spot(Vector3(rng.randf_range(-74, 74), 0.3, rng.randf_range(-56, 80)), Color(0.30, 0.80, 0.60))
+
     _build_descent()
 
 func _build_descent() -> void:
-    # Lower landing beyond the floor edge (floor ends at z=-24).
-    _add_box(Vector3(0, -3.0, -30), Vector3(16, 1, 9), Color(0.05, 0.05, 0.06))
-    # Ramp bridging floor edge (z=-24, y=0) down to the landing.
-    var ramp := _add_box(Vector3(0, -1.4, -25.5), Vector3(8, 0.6, 6), Color(0.10, 0.09, 0.10))
+    # Lower landing beyond the floor's back edge (floor ends at z=-60).
+    _add_box(Vector3(0, -3.0, -67), Vector3(26, 1, 16), Color(0.05, 0.05, 0.06))
+    # Ramp bridging floor edge (z=-60, y=0) down to the landing.
+    var ramp := _add_box(Vector3(0, -1.5, -61), Vector3(12, 0.6, 9), Color(0.10, 0.09, 0.10))
     ramp.rotation.x = deg_to_rad(24)
     # Warning-glow markers at the lip.
-    _add_glow_spot(Vector3(-4, 0.3, -23), Color(0.90, 0.40, 0.30))
-    _add_glow_spot(Vector3(4, 0.3, -23), Color(0.90, 0.40, 0.30))
+    _add_glow_spot(Vector3(-6, 0.3, -58), Color(0.90, 0.40, 0.30))
+    _add_glow_spot(Vector3(6, 0.3, -58), Color(0.90, 0.40, 0.30))
     # Trigger.
     var area := Area3D.new()
-    area.position = Vector3(0, -2.0, -31)
+    area.position = Vector3(0, -2.0, -68)
     var cs := CollisionShape3D.new()
     var bs := BoxShape3D.new()
-    bs.size = Vector3(16, 5, 9)
+    bs.size = Vector3(26, 5, 16)
     cs.shape = bs
     area.add_child(cs)
     add_child(area)
@@ -225,15 +250,17 @@ func _on_descent_entered(body: Node) -> void:
 
 func _spawn_player() -> void:
     _player = Player.new()
-    _player.position = Vector3(0, 2, 30)
+    _player.position = Vector3(0, 2, 82)
     add_child(_player)
 
 func _spawn_creatures() -> void:
-    var prey := [Vector3(-5, 1, 0), Vector3(4, 1, -2), Vector3(-1, 1, -7), Vector3(10, 1, 6)]
+    var prey := [Vector3(-15, 1, 52), Vector3(12, 1, 44), Vector3(-6, 1, 30), Vector3(24, 1, 24),
+                 Vector3(-30, 1, 12), Vector3(34, 1, 18), Vector3(4, 1, -6), Vector3(-20, 1, -22)]
     for p in prey:
         _spawn_creature(p, "mosslamb", "Mosslamb", false, 26.0, 3.0, 0.0, 9.0, Color(0.82, 0.80, 0.72), 1.1)
-    _spawn_creature(Vector3(-18, 1, -14), "ashjackal", "Ashjackal", true, 42.0, 4.3, 9.0, 12.0, Color(0.26, 0.24, 0.22), 1.2)
-    _spawn_creature(Vector3(16, 1, -16), "ashjackal", "Ashjackal", true, 42.0, 4.3, 9.0, 12.0, Color(0.26, 0.24, 0.22), 1.2)
+    var preds := [Vector3(-46, 1, -34), Vector3(46, 1, -38), Vector3(0, 1, -48), Vector3(-54, 1, 38)]
+    for q in preds:
+        _spawn_creature(q, "ashjackal", "Ashjackal", true, 42.0, 4.3, 9.0, 12.0, Color(0.26, 0.24, 0.22), 1.2)
 
 func _spawn_creature(pos: Vector3, id: String, dn: String, predator: bool, hp: float, spd: float, dmg: float, det: float, col: Color, hgt: float) -> void:
     var c := Creature.new()
