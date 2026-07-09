@@ -29,6 +29,14 @@ func _ready() -> void:
     _spawn_creatures()
     _spawn_forageables()
     _build_hud()
+    _build_audio()
+
+func _build_audio() -> void:
+    var amb := AudioStreamPlayer.new()
+    amb.stream = Audio.get_stream("ambience")
+    amb.volume_db = -14.0
+    add_child(amb)
+    amb.play()
 
 func _setup_environment() -> void:
     var we := WorldEnvironment.new()
