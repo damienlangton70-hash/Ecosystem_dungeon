@@ -56,36 +56,90 @@ func _ready() -> void:
     _pick_wander()
 
 func _build_body() -> void:
-    var col := CollisionShape3D.new()
-    var cap := CapsuleShape3D.new()
-    cap.radius = 0.35
-    cap.height = body_height
-    col.shape = cap
-    col.position = Vector3(0, body_height * 0.5, 0)
-    add_child(col)
-    var mesh := MeshInstance3D.new()
-    var cm := CapsuleMesh.new()
-    cm.radius = 0.35
-    cm.height = body_height
-    mesh.mesh = cm
-    mesh.position = Vector3(0, body_height * 0.5, 0)
     _body_mat = StandardMaterial3D.new()
     _body_mat.albedo_color = body_color
     _body_mat.roughness = 0.9
     _body_mat.rim_enabled = true
     _body_mat.rim = 0.5
     _body_mat.rim_tint = 0.3
-    mesh.material_override = _body_mat
-    add_child(mesh)
-    # Head so it reads as an animal, not a capsule (front is -Z).
+
+    var lean := is_predator                 # predators lower + leaner
+    var leg_len := body_height * 0.42
+    var torso_y := leg_len + 0.12
+    var total_h := torso_y + 0.5
+
+    # Collision box enclosing the quadruped (feet at y=0).
+    var col := CollisionShape3D.new()
+    var box := BoxShape3D.new()
+    box.size = Vector3(0.7, total_h, 1.3)
+    col.shape = box
+    col.position = Vector3(0, total_h * 0.5, 0)
+    add_child(col)
+
+    # Torso — a horizontal capsule running front-to-back.
+    var torso := MeshInstance3D.new()
+    var tm := CapsuleMesh.new()
+    tm.radius = 0.24 if lean else 0.30
+    tm.height = 1.05
+    torso.mesh = tm
+    torso.rotation = Vector3(deg_to_rad(90), 0.0, 0.0)
+    torso.position = Vector3(0, torso_y, 0)
+    torso.material_override = _body_mat
+    add_child(torso)
+
+    # Four legs.
+    for lx in [-0.22, 0.22]:
+        for lz in [-0.34, 0.34]:
+            var leg := MeshInstance3D.new()
+            var lm := CylinderMesh.new()
+            lm.top_radius = 0.09
+            lm.bottom_radius = 0.08
+            lm.height = leg_len
+            leg.mesh = lm
+            leg.position = Vector3(lx, leg_len * 0.5, lz)
+            leg.material_override = _body_mat
+            add_child(leg)
+
+    # Head at the front (-Z).
+    var head_pos := Vector3(0, torso_y + 0.14, -0.62)
     var head := MeshInstance3D.new()
     var hm := SphereMesh.new()
-    hm.radius = 0.30
-    hm.height = 0.48
+    hm.radius = 0.26
+    hm.height = 0.44
     head.mesh = hm
-    head.position = Vector3(0, body_height * 0.92, -0.30)
+    head.position = head_pos
     head.material_override = _body_mat
     add_child(head)
+
+    # Ears — pointed for predators, small + rounded for prey.
+    for ex in [-0.12, 0.12]:
+        var ear := MeshInstance3D.new()
+        var earm := CylinderMesh.new()
+        if is_predator:
+            earm.top_radius = 0.0
+            earm.bottom_radius = 0.08
+            earm.height = 0.24
+        else:
+            earm.top_radius = 0.05
+            earm.bottom_radius = 0.07
+            earm.height = 0.14
+        ear.mesh = earm
+        ear.position = head_pos + Vector3(ex, 0.22, 0.04)
+        ear.material_override = _body_mat
+        add_child(ear)
+
+    # Tail, angled up off the back.
+    var tail := MeshInstance3D.new()
+    var tlm := CylinderMesh.new()
+    tlm.top_radius = 0.03
+    tlm.bottom_radius = 0.07
+    tlm.height = 0.5
+    tail.mesh = tlm
+    tail.rotation = Vector3(deg_to_rad(55), 0.0, 0.0)
+    tail.position = Vector3(0, torso_y + 0.05, 0.6)
+    tail.material_override = _body_mat
+    add_child(tail)
+
     # Glowing eyes for predators — a readable "this one bites" cue.
     if is_predator:
         var emat := StandardMaterial3D.new()
@@ -93,13 +147,13 @@ func _build_body() -> void:
         emat.emission_enabled = true
         emat.emission = Color(1.0, 0.55, 0.15)
         emat.emission_energy_multiplier = 3.0
-        for sx in [-0.12, 0.12]:
+        for sx in [-0.1, 0.1]:
             var eye := MeshInstance3D.new()
             var em := SphereMesh.new()
-            em.radius = 0.055
-            em.height = 0.11
+            em.radius = 0.05
+            em.height = 0.1
             eye.mesh = em
-            eye.position = Vector3(sx, body_height * 0.96, -0.52)
+            eye.position = head_pos + Vector3(sx, 0.02, -0.2)
             eye.material_override = emat
             add_child(eye)
     _sfx = AudioStreamPlayer3D.new()
