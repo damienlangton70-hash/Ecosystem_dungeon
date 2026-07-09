@@ -34,7 +34,8 @@ The first genuinely fun 10 minutes.
       an AI state machine; deaths report to the Ecosystem.
 - [x] **Survival:** hunger + stamina + death/respawn, **starvation drains HP**, butcher downed
       creatures for **raw meat**, and a buildable **campfire** cook-point.
-- [x] **Cooking:** cook raw → cooked at a campfire; **eat** to restore hunger (cooked also heals).
+- [x] **Cooking & foraging:** forage regrowing berry bushes + herbs; cook meat + herb/fruit into
+      **meals** that restore hunger, heal, and grant timed buffs (regen / stamina / defense / warmth).
 - [~] **Feel:** readable combat HUD (HP/STA/FOOD bars, depth, hostility, lock-on) done; cave
       ambience audio still to come.
 
@@ -62,15 +63,16 @@ The first genuinely fun 10 minutes.
 
 ---
 
-## Next up (for the very next run) → CLOSE OUT M1
-1. **Flora foraging:** gather berries/herbs (3 trees, 10 fruit bushes, 10 herbs from FOOD_WEB)
-   and use them as cooking ingredients (warmth / stamina / heal buffs).
-2. **Combat depth:** heavy attack + a first real weapon; enemy attack tells/telegraphs.
-3. **Cooking depth:** recipes that combine meat + herb/fruit for buffs; food spoilage.
+## Next up (for the very next run)
+1. **Combat depth:** heavy attack + a first real weapon; enemy attack tells/telegraphs; poise.
+2. **Content:** more of the food web on Floor 1 (a Tier-2/3 predator) + more flora variety.
+3. **Cooking depth:** food spoilage; a few signature recipes with stronger combined buffs.
 4. **Audio:** a low cave-ambience bed and basic combat / creature / fire SFX.
-5. **Then M4 prep:** make the descent shaft actually load Floor 2 (The Rootways).
+5. **Descend:** make the shaft load Floor 2 (The Rootways) as a second environment.
 
 ## Done recently
+- **M1 pt.3:** enlarged Floor 1 to a big cavern; foraging (regrowing bushes/herbs) + recipe
+  cooking (meals granting regen/stamina/defense/warmth buffs). Self-test covers forage→cook→eat.
 - **M1 pt.2:** butchering → raw meat, buildable campfire, cook raw→cooked, eat to restore
   hunger, starvation drains HP. Verified by `tools/SelfTest.tscn` (collect/fire/cook/eat PASS).
 - **M1 pt.1:** shaped Floor 1, skill-combat core (attack / dodge-iframes / lock-on), two AI
