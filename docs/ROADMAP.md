@@ -24,14 +24,19 @@ widen it floor-by-floor and system-by-system. Every commit leaves the game runna
 
 ### M1 — Vertical Slice: "Floor 1, alive"
 The first genuinely fun 10 minutes.
-- [ ] **World:** hand-shaped Floor 1 (Fungal Shallows) as a real environment with a descent
-      exit to Floor 2, water pool, and landmark caverns.
-- [ ] **Combat:** Dark Souls-style basics — stamina-gated light/heavy attack, dodge-roll with
-      i-frames, lock-on, one melee weapon, hit/hurtboxes, hitstun.
-- [ ] **Creatures:** 3–5 Tier-1/2 animals with basic AI (wander, flee, aggro) that fight back.
-- [ ] **Survival:** hunger with real consequences; gather 2–3 foods; **campfire** you can light.
-- [ ] **Cooking:** cook raw meat/fruit at a campfire → edible item that restores hunger.
-- [ ] **Feel:** cave ambience audio bed; readable HUD.
+- [x] **World:** Floor 1 (Fungal Shallows) as a real environment — entrance, glowing fungal
+      grove (glowcap pillar-trees + lights), water pool, cover rocks, and a descent shaft to
+      Floor 2 (trigger stub). Still low-poly/procedural.
+- [x] **Combat (core):** stamina-gated light attack, dodge-roll with i-frames, right-click
+      lock-on, front-arc melee hitscan, health + hitstun + respawn. (Heavy attack, real
+      weapons and parries still to come.)
+- [x] **Creatures:** Mosslamb (prey: wander/flee) and Ashjackal (predator: chase/attack) with
+      an AI state machine; deaths report to the Ecosystem.
+- [~] **Survival:** hunger drain + stamina economy + death/respawn wired; still need real
+      starvation consequences, gathering, and a **campfire** you can light.
+- [ ] **Cooking:** cook raw meat/fruit at a cook-point → edible item that restores hunger.
+- [~] **Feel:** readable combat HUD (HP/STA/FOOD bars, depth, hostility, lock-on) done; cave
+      ambience audio still to come.
 
 ### M2 — The Ecosystem Reacts
 - [ ] Populations per species; predators hunt prey; day/rest cycle ticks the sim.
@@ -57,12 +62,17 @@ The first genuinely fun 10 minutes.
 
 ---
 
-## Next up (for the very next run) → START OF M1
-1. **World Building:** replace the three placeholder terraces with a proper Floor 1 layout
-   (entrance hall → fungal grove → water pool → descent shaft), still low-poly.
-2. **Mechanics:** stand up the combat core (stamina, light attack, dodge-roll i-frames,
-   lock-on) on the existing `Player`.
-3. **QA:** extend `tools/validate.sh` with a headless combat smoke-test.
+## Next up (for the very next run) → FINISH M1
+1. **Mechanics:** hunger consequences (starvation drains HP), gather berries/herbs, and a
+   buildable **campfire** cook-point; then **cooking** (raw → cooked restores hunger + buffs).
+2. **Mechanics/Lore:** butcher a downed creature → "raw meat" pickup that feeds the loop.
+3. **Combat:** heavy attack + a first real weapon, and enemy attack tells/telegraphs.
+4. **Audio:** a low cave-ambience bed and basic combat/creature SFX.
+5. **QA:** extend `tools/validate.sh` with a scripted combat smoke-test (spawn dummy, swing, assert damage).
+
+## Done in the last increment (M1, part 1)
+Shaped Floor 1, the skill-combat core (attack/dodge-iframes/lock-on), two AI creatures wired
+to the ecosystem, and the combat HUD. Validated headless (clean import + 400-frame run).
 
 ## Known risks / notes
 - **CI export** presets/platform names are a best-effort starting point; Assembly+QA must
