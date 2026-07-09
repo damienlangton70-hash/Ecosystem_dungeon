@@ -17,6 +17,7 @@ var _depth_label: Label
 var _info_label: Label
 var _lock_label: Label
 var _inv_label: Label
+var _buff_label: Label
 var _status_label: Label
 
 func _ready() -> void:
@@ -26,6 +27,7 @@ func _ready() -> void:
     _build_floor1()
     _spawn_player()
     _spawn_creatures()
+    _spawn_forageables()
     _build_hud()
 
 func _setup_environment() -> void:
@@ -276,6 +278,29 @@ func _spawn_creature(pos: Vector3, id: String, dn: String, predator: bool, hp: f
     c.position = pos
     add_child(c)
 
+func _spawn_forageables() -> void:
+    var rng := RandomNumberGenerator.new()
+    rng.randomize()
+    var flora := [
+        ["emberberry", "Emberberry", Color(0.85, 0.35, 0.25)],
+        ["gloomgrape", "Gloomgrape", Color(0.45, 0.30, 0.70)],
+        ["bleedberry", "Bleedberry", Color(0.75, 0.15, 0.25)],
+        ["duskfig", "Duskfig", Color(0.42, 0.28, 0.36)],
+        ["palethyme", "Palethyme", Color(0.55, 0.80, 0.45)],
+        ["stoneleaf", "Stoneleaf Rosemary", Color(0.45, 0.65, 0.50)],
+        ["deeprootginger", "Deeproot Ginger", Color(0.80, 0.75, 0.40)],
+        ["marrowmint", "Marrow Mint", Color(0.50, 0.85, 0.70)],
+    ]
+    for entry in flora:
+        for k in range(3):
+            var f := Forageable.new()
+            f.item_id = entry[0]
+            f.display_name = entry[1]
+            f.color = entry[2]
+            f.yield_amount = 1
+            f.position = Vector3(rng.randf_range(-70, 70), 0.0, rng.randf_range(-52, 74))
+            add_child(f)
+
 func _build_hud() -> void:
     var layer := CanvasLayer.new()
     add_child(layer)
@@ -298,17 +323,21 @@ func _build_hud() -> void:
     _inv_label = Label.new()
     _inv_label.position = Vector2(16, 186)
     layer.add_child(_inv_label)
+    _buff_label = Label.new()
+    _buff_label.position = Vector2(16, 210)
+    _buff_label.modulate = Color(0.75, 0.95, 0.85)
+    layer.add_child(_buff_label)
     _status_label = Label.new()
-    _status_label.position = Vector2(16, 210)
+    _status_label.position = Vector2(16, 234)
     _status_label.modulate = Color(1.0, 0.95, 0.7)
     layer.add_child(_status_label)
     var help := Label.new()
     help.text = "WASD move · Shift sprint · Space jump · Mouse look · Esc cursor"
-    help.position = Vector2(16, 244)
+    help.position = Vector2(16, 266)
     layer.add_child(help)
     var help2 := Label.new()
-    help2.text = "LMB attack · RMB lock-on · Ctrl dodge · E butcher · B campfire · C cook · F eat"
-    help2.position = Vector2(16, 266)
+    help2.text = "LMB attack · RMB lock-on · Ctrl dodge · E gather · B campfire · C cook · F eat"
+    help2.position = Vector2(16, 288)
     layer.add_child(help2)
 
 func _make_bar(layer: CanvasLayer, pos: Vector2, color: Color, label: String) -> ColorRect:
@@ -349,6 +378,14 @@ func _process(_delta: float) -> void:
         else:
             _lock_label.text = ""
     if _inv_label != null:
-        _inv_label.text = "Raw meat: %d    Cooked: %d" % [int(_player.inventory.get("raw_meat", 0)), int(_player.inventory.get("cooked_meat", 0))]
+        _inv_label.text = "Raw meat: %d · Meals: %d · Fruit: %d · Herbs: %d" % [int(_player.inventory.get("raw_meat", 0)), _player.meals.size(), _player.count_category("fruit"), _player.count_category("herb")]
+    if _buff_label != null:
+        if _player.active_buffs.size() > 0:
+            var names: Array = []
+            for b in _player.active_buffs:
+                names.append(str(b["type"]))
+            _buff_label.text = "Buffs: " + ", ".join(names)
+        else:
+            _buff_label.text = ""
     if _status_label != null:
         _status_label.text = _player.status_text
