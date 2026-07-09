@@ -20,6 +20,15 @@ var _inv_label: Label
 var _buff_label: Label
 var _status_label: Label
 
+# Combat tuning by trophic tier (lore.json holds ecology/identity, not combat numbers).
+const TIER_TUNING := {
+    1: {"hp": 26.0, "poise": 20.0, "speed": 3.0, "dmg": 0.0, "height": 1.10, "color": Color(0.82, 0.80, 0.72)},
+    2: {"hp": 42.0, "poise": 30.0, "speed": 4.2, "dmg": 9.0, "height": 1.20, "color": Color(0.26, 0.24, 0.22)},
+    3: {"hp": 58.0, "poise": 40.0, "speed": 3.4, "dmg": 16.0, "height": 1.05, "color": Color(0.17, 0.16, 0.20)},
+    4: {"hp": 110.0, "poise": 60.0, "speed": 3.2, "dmg": 26.0, "height": 1.60, "color": Color(0.20, 0.18, 0.20)},
+    5: {"hp": 200.0, "poise": 90.0, "speed": 3.4, "dmg": 34.0, "height": 2.00, "color": Color(0.10, 0.10, 0.14)},
+}
+
 func _ready() -> void:
     _setup_environment()
     _setup_light()
@@ -64,17 +73,29 @@ func _build_ecosystem() -> void:
     _ecosystem.name = "Ecosystem"
     add_child(_ecosystem)
     _ecosystem.add_to_group("ecosystem")
-    _register("mosslamb", "Mosslamb", 1, 80)
-    _register("ashjackal", "Ashjackal", 2, 30)
-    _register("gloamstalker_lynx", "Gloamstalker Lynx", 3, 12)
+    for id in ["mosslamb", "ashjackal", "gloamstalker_lynx"]:
+        _register_from_lore(id, 1)
 
-func _register(id: String, dn: String, tier: int, cap: int) -> void:
+## Register a species in the ecosystem using stats from the Lore layer (lore.json).
+func _register_from_lore(id: String, floor: int) -> void:
+    var L := LoreData.creature(id)
     var s := Species.new()
     s.id = id
-    s.display_name = dn
-    s.tier = tier
-    s.population = cap
+    s.display_name = str(L.get("name", id))
+    s.tier = int(L.get("tier", 1))
+    var caps: Dictionary = L.get("carrying_capacity_by_floor", {})
+    var cap := int(caps.get(str(floor), 30))
+    if cap <= 0:
+        cap = 30
     s.carrying_capacity = cap
+    s.population = cap
+    s.base_aggression = float(L.get("base_aggression", 0.2))
+    s.awareness = float(L.get("awareness", 0.3))
+    s.edible = bool(L.get("edible", true))
+    var diet: Array[String] = []
+    for d in L.get("diet", []):
+        diet.append(str(d))
+    s.diet = diet
     _ecosystem.register_species(s)
 
 func _add_box(pos: Vector3, size: Vector3, color: Color, rough := 0.95) -> StaticBody3D:
@@ -265,31 +286,37 @@ func _spawn_player() -> void:
     add_child(_player)
 
 func _spawn_creatures() -> void:
-    var prey := [Vector3(-15, 1, 52), Vector3(12, 1, 44), Vector3(-6, 1, 30), Vector3(24, 1, 24),
-                 Vector3(-30, 1, 12), Vector3(34, 1, 18), Vector3(4, 1, -6), Vector3(-20, 1, -22)]
-    for p in prey:
-        _spawn_creature(p, "mosslamb", "Mosslamb", false, 26.0, 3.0, 0.0, 9.0, Color(0.82, 0.80, 0.72), 1.1)
-    var preds := [Vector3(-46, 1, -34), Vector3(46, 1, -38), Vector3(0, 1, -48), Vector3(-54, 1, 38)]
-    for q in preds:
-        _spawn_creature(q, "ashjackal", "Ashjackal", true, 42.0, 4.3, 9.0, 12.0, Color(0.26, 0.24, 0.22), 1.2)
-    # Tier-3 apex of the floor: Gloamstalker Lynx — ambush stalker guarding the descent.
-    _spawn_creature(Vector3(-8, 1, -50), "gloamstalker_lynx", "Gloamstalker Lynx", true, 58.0, 3.2, 16.0, 15.0, Color(0.17, 0.16, 0.20), 1.05, true, 1.9, 40.0)
-    _spawn_creature(Vector3(12, 1, -46), "gloamstalker_lynx", "Gloamstalker Lynx", true, 58.0, 3.2, 16.0, 15.0, Color(0.17, 0.16, 0.20), 1.05, true, 1.9, 40.0)
+    for p in [Vector3(-15, 1, 52), Vector3(12, 1, 44), Vector3(-6, 1, 30), Vector3(24, 1, 24),
+              Vector3(-30, 1, 12), Vector3(34, 1, 18), Vector3(4, 1, -6), Vector3(-20, 1, -22)]:
+        _spawn_from_lore("mosslamb", p)
+    for p in [Vector3(-46, 1, -34), Vector3(46, 1, -38), Vector3(0, 1, -48), Vector3(-54, 1, 38)]:
+        _spawn_from_lore("ashjackal", p)
+    # Tier-3 ambush stalkers guarding the descent.
+    _spawn_from_lore("gloamstalker_lynx", Vector3(-8, 1, -50))
+    _spawn_from_lore("gloamstalker_lynx", Vector3(12, 1, -46))
 
-func _spawn_creature(pos: Vector3, id: String, dn: String, predator: bool, hp: float, spd: float, dmg: float, det: float, col: Color, hgt: float, ambush := false, csm := 1.0, poise := 30.0) -> void:
+## Spawn a creature whose identity/ecology comes from lore.json; combat numbers
+## are derived from its tier (TIER_TUNING) since lore holds no combat values.
+func _spawn_from_lore(id: String, pos: Vector3) -> void:
+    var L := LoreData.creature(id)
+    var tier := int(L.get("tier", 1))
+    var tune: Dictionary = TIER_TUNING.get(tier, TIER_TUNING[1])
+    var arche := str(L.get("behaviour_archetype", ""))
+    var aggr := float(L.get("base_aggression", 0.2))
+    var aware := float(L.get("awareness", 0.3))
     var c := Creature.new()
     c.species_id = id
-    c.display_name = dn
-    c.is_predator = predator
-    c.max_health = hp
-    c.max_poise = poise
-    c.move_speed = spd
-    c.attack_damage = dmg
-    c.detect_radius = det
-    c.body_color = col
-    c.body_height = hgt
-    c.ambush = ambush
-    c.chase_speed_mult = csm
+    c.display_name = str(L.get("name", id))
+    c.is_predator = aggr >= 0.3
+    c.ambush = arche == "ambush_predator"
+    c.chase_speed_mult = 1.9 if c.ambush else 1.0
+    c.max_health = float(tune["hp"])
+    c.max_poise = float(tune["poise"])
+    c.move_speed = float(tune["speed"])
+    c.attack_damage = float(tune["dmg"])
+    c.detect_radius = 6.0 + aware * 14.0
+    c.body_color = tune["color"]
+    c.body_height = float(tune["height"])
     c.position = pos
     add_child(c)
 
@@ -310,7 +337,7 @@ func _spawn_forageables() -> void:
         for k in range(3):
             var f := Forageable.new()
             f.item_id = entry[0]
-            f.display_name = entry[1]
+            f.display_name = str(LoreData.flora(entry[0]).get("name", entry[1]))
             f.color = entry[2]
             f.yield_amount = 1
             f.position = Vector3(rng.randf_range(-70, 70), 0.0, rng.randf_range(-52, 74))
