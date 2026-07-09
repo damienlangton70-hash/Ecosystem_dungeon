@@ -14,11 +14,16 @@ PROJECT_DIR="${1:-.}"
 echo "== Originality lint (banned external-IP / inspiration names) =="
 # Deepforage borrows only the SPIRIT of its influences — no external-IP names in canon,
 # code, or data. Renamed for originality: Antler Warg -> Rackjaw, Stonehide Rhinox ->
-# Stonehide Gorehorn. Extend BANNED as needed (pipe-separated, case-insensitive substring).
+# Stonehide Gorehorn. BANNED covers our renamed collisions, Delicious in Dungeon names,
+# and a few other franchises (Tolkien / D&D / sci-fi). Deliberately NOT banned: public-domain
+# mythology our canon uses (basilisk, cockatrice, roc, wyrm, drake, leviathan, titan...),
+# real English words (ent / umber / beholder / mimic / bugbear), and the citation
+# "Delicious in Dungeon (Ryoko Kui)". Every entry must be a distinctive proper noun that can
+# never be a substring of legitimate content. Extend below (case-insensitive substring).
 # Excludes docs/ROADMAP.md + docs/changelog/ (they legitimately record rename history),
 # *.base64 and *.import (encoded/generated text can contain these substrings by chance),
 # and validate.sh itself (it defines the list).
-BANNED='Warg|Rhinox|Laios|Marcille|Chilchuck|Senshi|Izutsumi|Kabru|Mithrun'
+BANNED='Warg|Rhinox|Laios|Marcille|Falin|Chilchuck|Senshi|Namari|Izutsumi|Shuro|Toshiro|Kabru|Mithrun|Balrog|Nazgul|Mordor|Uruk-hai|Mithril|Smaug|Illithid|Owlbear|Gnoll|Xenomorph'
 LINT_HITS=$(grep -rEIni "$BANNED" "$PROJECT_DIR" \
   --exclude-dir=.git --exclude-dir=.godot --exclude-dir=.studio --exclude-dir=changelog \
   --exclude='*.base64' --exclude='*.import' --exclude='ROADMAP.md' --exclude='validate.sh' 2>/dev/null || true)
