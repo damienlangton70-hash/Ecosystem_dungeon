@@ -16,6 +16,8 @@ var _hu_fill: ColorRect
 var _depth_label: Label
 var _info_label: Label
 var _lock_label: Label
+var _inv_label: Label
+var _status_label: Label
 
 func _ready() -> void:
     _setup_environment()
@@ -266,10 +268,21 @@ func _build_hud() -> void:
     _lock_label = Label.new()
     _lock_label.position = Vector2(16, 162)
     layer.add_child(_lock_label)
+    _inv_label = Label.new()
+    _inv_label.position = Vector2(16, 186)
+    layer.add_child(_inv_label)
+    _status_label = Label.new()
+    _status_label.position = Vector2(16, 210)
+    _status_label.modulate = Color(1.0, 0.95, 0.7)
+    layer.add_child(_status_label)
     var help := Label.new()
-    help.text = "WASD move · Shift sprint · Space jump · LMB attack · RMB lock-on · Ctrl dodge · Esc cursor"
-    help.position = Vector2(16, 194)
+    help.text = "WASD move · Shift sprint · Space jump · Mouse look · Esc cursor"
+    help.position = Vector2(16, 244)
     layer.add_child(help)
+    var help2 := Label.new()
+    help2.text = "LMB attack · RMB lock-on · Ctrl dodge · E butcher · B campfire · C cook · F eat"
+    help2.position = Vector2(16, 266)
+    layer.add_child(help2)
 
 func _make_bar(layer: CanvasLayer, pos: Vector2, color: Color, label: String) -> ColorRect:
     var lab := Label.new()
@@ -308,3 +321,7 @@ func _process(_delta: float) -> void:
             _lock_label.text = "[ lock-on: %s ]" % str(_player.lock_target.display_name)
         else:
             _lock_label.text = ""
+    if _inv_label != null:
+        _inv_label.text = "Raw meat: %d    Cooked: %d" % [int(_player.inventory.get("raw_meat", 0)), int(_player.inventory.get("cooked_meat", 0))]
+    if _status_label != null:
+        _status_label.text = _player.status_text
