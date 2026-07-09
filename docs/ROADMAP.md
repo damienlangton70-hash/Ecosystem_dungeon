@@ -32,9 +32,9 @@ The first genuinely fun 10 minutes.
       weapons and parries still to come.)
 - [x] **Creatures:** Mosslamb (prey: wander/flee) and Ashjackal (predator: chase/attack) with
       an AI state machine; deaths report to the Ecosystem.
-- [~] **Survival:** hunger drain + stamina economy + death/respawn wired; still need real
-      starvation consequences, gathering, and a **campfire** you can light.
-- [ ] **Cooking:** cook raw meat/fruit at a cook-point → edible item that restores hunger.
+- [x] **Survival:** hunger + stamina + death/respawn, **starvation drains HP**, butcher downed
+      creatures for **raw meat**, and a buildable **campfire** cook-point.
+- [x] **Cooking:** cook raw → cooked at a campfire; **eat** to restore hunger (cooked also heals).
 - [~] **Feel:** readable combat HUD (HP/STA/FOOD bars, depth, hostility, lock-on) done; cave
       ambience audio still to come.
 
@@ -62,17 +62,19 @@ The first genuinely fun 10 minutes.
 
 ---
 
-## Next up (for the very next run) → FINISH M1
-1. **Mechanics:** hunger consequences (starvation drains HP), gather berries/herbs, and a
-   buildable **campfire** cook-point; then **cooking** (raw → cooked restores hunger + buffs).
-2. **Mechanics/Lore:** butcher a downed creature → "raw meat" pickup that feeds the loop.
-3. **Combat:** heavy attack + a first real weapon, and enemy attack tells/telegraphs.
-4. **Audio:** a low cave-ambience bed and basic combat/creature SFX.
-5. **QA:** extend `tools/validate.sh` with a scripted combat smoke-test (spawn dummy, swing, assert damage).
+## Next up (for the very next run) → CLOSE OUT M1
+1. **Flora foraging:** gather berries/herbs (3 trees, 10 fruit bushes, 10 herbs from FOOD_WEB)
+   and use them as cooking ingredients (warmth / stamina / heal buffs).
+2. **Combat depth:** heavy attack + a first real weapon; enemy attack tells/telegraphs.
+3. **Cooking depth:** recipes that combine meat + herb/fruit for buffs; food spoilage.
+4. **Audio:** a low cave-ambience bed and basic combat / creature / fire SFX.
+5. **Then M4 prep:** make the descent shaft actually load Floor 2 (The Rootways).
 
-## Done in the last increment (M1, part 1)
-Shaped Floor 1, the skill-combat core (attack/dodge-iframes/lock-on), two AI creatures wired
-to the ecosystem, and the combat HUD. Validated headless (clean import + 400-frame run).
+## Done recently
+- **M1 pt.2:** butchering → raw meat, buildable campfire, cook raw→cooked, eat to restore
+  hunger, starvation drains HP. Verified by `tools/SelfTest.tscn` (collect/fire/cook/eat PASS).
+- **M1 pt.1:** shaped Floor 1, skill-combat core (attack / dodge-iframes / lock-on), two AI
+  creatures wired to the ecosystem, combat HUD. Validated headless.
 
 ## Known risks / notes
 - **CI export** presets/platform names are a best-effort starting point; Assembly+QA must
