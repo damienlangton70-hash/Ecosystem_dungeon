@@ -15,8 +15,8 @@ ecology. Numbers are starting values for tuning.
 
 ```
 Tier 5  APEX            Gloom Tyrant · Elder Marrowmother · Cavern Roc · Sunless Wyrm · Titan Molebeast · Hollow Stag(keystone)
-Tier 4  LARGE PREDATORS Chasm Drake · Gravemaw Ursine · Pale Sabertooth · Dire Basilisk · Leviathan-eel · Stonehide Rhinox
-Tier 3  MID PREDATORS   Gloamstalker Lynx · Hookbeak Ridgehawk · Marrow Hyena · Bog Saurian · Tunnel Constrictor · Antler Warg
+Tier 4  LARGE PREDATORS Chasm Drake · Gravemaw Ursine · Pale Sabertooth · Dire Basilisk · Leviathan-eel · Stonehide Gorehorn
+Tier 3  MID PREDATORS   Gloamstalker Lynx · Hookbeak Ridgehawk · Marrow Hyena · Bog Saurian · Tunnel Constrictor · Rackjaw
 Tier 2  SMALL HUNTERS   Gloomferret · Ashjackal · Rockback Boar · Spinefowl · Grave Otter · Cinder Cockatril
 Tier 1  GRAZERS         Mosslamb · Grotto Springhare · Capglow Snail · Blind Vole · Palefish · Deep Quail
                         (Tier 1 eats FLORA & detritus — the base of the web)
@@ -55,7 +55,7 @@ Tier 1  GRAZERS         Mosslamb · Grotto Springhare · Capglow Snail · Blind 
 | 15 | **Marrow Hyena** *(pack)* | Rockback Boar, Ashjackal, carrion | 0.65 | 0.7 | Bone-cracker; drawn to wasted carcasses. |
 | 16 | **Bog Saurian** *(semi-aquatic)* | Grave Otter, Palefish, Rockback Boar | 0.6 | 0.5 | Reptile; tail is prime meat. |
 | 17 | **Tunnel Constrictor** | Blind Vole, Gloomferret, Springhare | 0.5 | 0.4 | Ambush from walls; huge yield. |
-| 18 | **Antler Warg** | Springhare, Deep Quail, Lynx cub | 0.6 | 0.7 | Fast pack hunter of the Rootways. |
+| 18 | **Rackjaw** | Springhare, Deep Quail, Lynx cub | 0.6 | 0.7 | Fast pack hunter of the Rootways. |
 
 ## Tier 4 — Large Predators
 
@@ -63,20 +63,20 @@ Tier 1  GRAZERS         Mosslamb · Grotto Springhare · Capglow Snail · Blind 
 |---|---------|------|:-----:|:------:|--------------|
 | 19 | **Chasm Drake** | Ridgehawk, Lynx, Marrow Hyena | 0.75 | 0.7 | Wingless wyvern; searing required. |
 | 20 | **Gravemaw Ursine** | Marrow Hyena, Boar, Bog Saurian | 0.7 | 0.6 | Cave bear; a feast, a nightmare to fight. |
-| 21 | **Pale Sabertooth** | Antler Warg, Ursine cub, Drake young | 0.8 | 0.7 | Glass-cannon predator; prized hide. |
-| 22 | **Dire Basilisk** | Bog Saurian, Antler Warg, Constrictor | 0.7 | 0.5 | Toxin glands; must be handled with Sulfur Chive. |
+| 21 | **Pale Sabertooth** | Rackjaw, Ursine cub, Drake young | 0.8 | 0.7 | Glass-cannon predator; prized hide. |
+| 22 | **Dire Basilisk** | Bog Saurian, Rackjaw, Constrictor | 0.7 | 0.5 | Toxin glands; must be handled with Sulfur Chive. |
 | 23 | **Deepwater Leviathan-eel** | Bog Saurian, Grave Otter, aquatic all | 0.65 | 0.5 | Marsh terror; enormous, oily meat. |
-| 24 | **Stonehide Rhinox** *(mega-herbivore)* | Ironbark shoots, heavy flora | 0.5 | 0.3 | Not a predator, but lethal charge; adults untouchable. |
+| 24 | **Stonehide Gorehorn** *(mega-herbivore)* | Ironbark shoots, heavy flora | 0.5 | 0.3 | Not a predator, but lethal charge; adults untouchable. |
 
 ## Tier 5 — Apex
 
 | # | Species | Eats | Role |
 |---|---------|------|------|
 | 25 | **The Gloom Tyrant** | Chasm Drake, Gravemaw Ursine, Pale Sabertooth | Apex predator of the deep. |
-| 26 | **Elder Marrowmother** | Antler Warg, Rhinox calf, rival hyenas | Matriarch; commands Marrow Hyena packs. |
-| 27 | **Cavern Roc** | Chasm Drake, Sabertooth, Antler Warg | Giant raptor of the vaults. |
+| 26 | **Elder Marrowmother** | Rackjaw, Gorehorn calf, rival hyenas | Matriarch; commands Marrow Hyena packs. |
+| 27 | **Cavern Roc** | Chasm Drake, Sabertooth, Rackjaw | Giant raptor of the vaults. |
 | 28 | **The Sunless Wyrm** | *everything* | Floor 5 apex; serpent-dragon; the Maw's dread. |
-| 29 | **Titan Molebeast** | Stonehide Rhinox, Gravemaw Ursine | Burrower; reshapes terrain. |
+| 29 | **Titan Molebeast** | Stonehide Gorehorn, Gravemaw Ursine | Burrower; reshapes terrain. |
 | 30 | **The Hollow Stag** *(keystone)* | high flora only | **Not a predator.** Its presence stabilises the web; killing it is catastrophic (see rules). |
 
 ---
@@ -106,7 +106,7 @@ Insects are pervasive hazards, not part of the trophic tiers above (though Tier 
 | Tree | Use |
 |------|-----|
 | **Glowcap Pillar-tree** | Giant luminescent fungal tree; light source; caps edible when cooked. |
-| **Ironbark Deeproot** | Hardwood — timber for shelter & weapon hafts; shoots feed the Rhinox. |
+| **Ironbark Deeproot** | Hardwood — timber for shelter & weapon hafts; shoots feed the Gorehorn. |
 | **Weeping Palewillow** | Waterside; flexible withes for **tents**; bark brews a restorative tea. |
 
 ### 10 fruit / berry bushes
