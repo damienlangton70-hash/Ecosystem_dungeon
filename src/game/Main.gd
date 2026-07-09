@@ -51,10 +51,29 @@ func _setup_environment() -> void:
     var we := WorldEnvironment.new()
     var env := Environment.new()
     env.background_mode = Environment.BG_COLOR
-    env.background_color = Color(0.02, 0.025, 0.04)
+    env.background_color = Palette.BG
     env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-    env.ambient_light_color = Color(0.16, 0.20, 0.28)
-    env.ambient_light_energy = 0.4
+    env.ambient_light_color = Palette.AMBIENT
+    env.ambient_light_energy = 0.45
+    # Filmic tonemap for contrast + controlled highlights.
+    env.tonemap_mode = Environment.TONE_MAPPER_ACES
+    env.tonemap_exposure = 1.05
+    # Bloom — the bioluminescence, water and firelight should glow.
+    env.glow_enabled = true
+    env.glow_intensity = 0.9
+    env.glow_strength = 1.1
+    env.glow_bloom = 0.25
+    env.glow_hdr_threshold = 0.95
+    env.glow_blend_mode = Environment.GLOW_BLEND_MODE_ADDITIVE
+    # Contact darkening for depth/grounding.
+    env.ssao_enabled = true
+    env.ssao_radius = 2.0
+    env.ssao_intensity = 2.5
+    # Subtle grade.
+    env.adjustment_enabled = true
+    env.adjustment_contrast = 1.06
+    env.adjustment_saturation = 1.12
+    # Depth fog.
     env.fog_enabled = true
     env.fog_light_color = Color(0.05, 0.08, 0.12)
     env.fog_density = 0.02
@@ -151,7 +170,9 @@ func _add_glowcap(pos: Vector3, height: float, glow: Color) -> void:
     capmat.albedo_color = glow
     capmat.emission_enabled = true
     capmat.emission = glow
-    capmat.emission_energy_multiplier = 2.5
+    capmat.emission_energy_multiplier = 3.6
+    capmat.rim_enabled = true
+    capmat.rim = 0.4
     cap.material_override = capmat
     add_child(cap)
 
@@ -173,7 +194,7 @@ func _add_glow_spot(pos: Vector3, glow: Color) -> void:
     mat.albedo_color = glow
     mat.emission_enabled = true
     mat.emission = glow
-    mat.emission_energy_multiplier = 2.0
+    mat.emission_energy_multiplier = 2.8
     m.material_override = mat
     add_child(m)
     var l := OmniLight3D.new()
