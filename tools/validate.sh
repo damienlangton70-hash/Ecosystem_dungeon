@@ -11,6 +11,25 @@ set -uo pipefail
 GODOT="${GODOT:-godot}"
 PROJECT_DIR="${1:-.}"
 
+echo "== Originality lint (banned external-IP / inspiration names) =="
+# Deepforage borrows only the SPIRIT of its influences — no external-IP names in canon,
+# code, or data. Renamed for originality: Antler Warg -> Rackjaw, Stonehide Rhinox ->
+# Stonehide Gorehorn. Extend BANNED as needed (pipe-separated, case-insensitive substring).
+# Excludes docs/ROADMAP.md + docs/changelog/ (they legitimately record rename history),
+# *.base64 and *.import (encoded/generated text can contain these substrings by chance),
+# and validate.sh itself (it defines the list).
+BANNED='Warg|Rhinox|Laios|Marcille|Chilchuck|Senshi|Izutsumi|Kabru|Mithrun'
+LINT_HITS=$(grep -rEIni "$BANNED" "$PROJECT_DIR" \
+  --exclude-dir=.git --exclude-dir=.godot --exclude-dir=.studio --exclude-dir=changelog \
+  --exclude='*.base64' --exclude='*.import' --exclude='ROADMAP.md' --exclude='validate.sh' 2>/dev/null || true)
+if [ -n "$LINT_HITS" ]; then
+  echo "VALIDATION FAILED: originality lint found banned name(s) (external-IP / inspiration collision):"
+  echo "$LINT_HITS"
+  echo "Fix: rename to an original coinage (e.g. Warg->Rackjaw, Rhinox->Stonehide Gorehorn). If a mention is deliberate history, add its path to the lint excludes in tools/validate.sh."
+  exit 1
+fi
+echo "Originality lint: OK (no banned names)."
+
 echo "== Importing project =="
 "$GODOT" --headless --path "$PROJECT_DIR" --import 2>&1 | tee /tmp/df_import.log
 
