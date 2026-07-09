@@ -84,8 +84,18 @@ func _build_body() -> void:
     mesh.position = Vector3(0, 0.9, 0)
     var mat := StandardMaterial3D.new()
     mat.albedo_color = Color(0.86, 0.79, 0.62)
+    mat.rim_enabled = true
+    mat.rim = 0.5
     mesh.material_override = mat
     add_child(mesh)
+    var head := MeshInstance3D.new()
+    var hm := SphereMesh.new()
+    hm.radius = 0.28
+    hm.height = 0.5
+    head.mesh = hm
+    head.position = Vector3(0, 1.72, 0)
+    head.material_override = mat
+    add_child(head)
 
 func _build_camera() -> void:
     _pivot = Node3D.new()
