@@ -3,6 +3,10 @@ extends Node3D
 ## A harvestable plant (berry bush or herb). The player gathers it with the
 ## interact key; it regrows after a delay, so foraging is sustainable — over-
 ## harvesting just means waiting (a gentle echo of the ecosystem theme).
+##
+## Visual: a real low-poly plant from Flora.gd (berry bush for fruit, herb
+## clump for herb) rather than a placeholder sphere — see src/world/Flora.gd
+## and docs/ART_DIRECTION.md §5.2. Gameplay API/behaviour is unchanged.
 
 @export var item_id := "emberberry"
 @export var display_name := "Emberberry"
@@ -12,31 +16,22 @@ extends Node3D
 
 var harvested := false
 var _timer := 0.0
-var _mesh: MeshInstance3D
+var _visual: Node3D
 
 func _ready() -> void:
     add_to_group("forageables")
-    _mesh = MeshInstance3D.new()
-    var sm := SphereMesh.new()
-    sm.radius = 0.5
-    sm.height = 0.9
-    _mesh.mesh = sm
-    _mesh.position = Vector3(0, 0.5, 0)
-    var mat := StandardMaterial3D.new()
-    mat.albedo_color = color
-    mat.emission_enabled = true
-    mat.emission = color * 0.4
-    mat.emission_energy_multiplier = 0.5
-    _mesh.material_override = mat
-    add_child(_mesh)
+    var category: String = Recipes.INGREDIENTS.get(item_id, {}).get("category", "fruit")
+    _visual = Flora.forageable_visual(item_id, category)
+    if _visual != null:
+        add_child(_visual)
 
 func harvest() -> int:
     if harvested:
         return 0
     harvested = true
     _timer = regrow_time
-    if _mesh != null:
-        _mesh.visible = false
+    if _visual != null:
+        _visual.visible = false
     return yield_amount
 
 func _process(delta: float) -> void:
@@ -44,5 +39,5 @@ func _process(delta: float) -> void:
         _timer -= delta
         if _timer <= 0.0:
             harvested = false
-            if _mesh != null:
-                _mesh.visible = true
+            if _visual != null:
+                _visual.visible = true
