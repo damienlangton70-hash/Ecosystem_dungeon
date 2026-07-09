@@ -64,13 +64,15 @@ The first genuinely fun 10 minutes.
 ---
 
 ## Next up (for the very next run)
-1. **Content:** more of the food web on Floor 1 (a Tier-2/3 predator) + more flora variety.
+1. **Content:** a second prey species + more flora variety; balance the new Lynx encounter.
 2. **Cooking depth:** food spoilage; signature recipes with stronger combined buffs.
 3. **Audio:** a low cave-ambience bed and basic combat / creature / fire SFX.
 4. **Descend:** make the shaft load Floor 2 (The Rootways) as a second environment.
 5. **Combat polish:** player poise/stagger, a parry, and hit VFX/juice.
 
 ## Done recently
+- **M1 pt.5:** added the **Gloamstalker Lynx** (Tier-3) — an ambush predator that stalks then
+  pounces, guarding the descent. Creature AI gained ambush/pounce behaviour + per-species poise.
 - **M1 pt.4:** combat depth — visible blade + swing, light (LMB) & committed heavy (RMB) attacks,
   enemy red wind-up telegraphs, and poise so heavy hits stagger. Lock-on moved to Q. Self-test
   covers poise-break stagger.
