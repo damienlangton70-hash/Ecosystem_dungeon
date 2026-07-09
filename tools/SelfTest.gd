@@ -49,7 +49,18 @@ func _ready() -> void:
         and player.meals.size() == 0 \
         and player.active_buffs.size() >= 1
 
-    print("SELFTEST butcher=%s forage=%s fire=%s cook=%s eat=%s" % [ok_butcher, ok_forage, ok_fire, ok_cook, ok_eat])
-    var passed: bool = ok_butcher and ok_forage and ok_fire and ok_cook and ok_eat
+    # Combat: a heavy hit breaks poise and staggers a predator.
+    var cr = load("res://src/creatures/Creature.gd").new()
+    cr.is_predator = true
+    cr.max_health = 40.0
+    cr.max_poise = 30.0
+    add_child(cr)
+    cr.global_position = Vector3(4, 0, 0)
+    var hp0: float = cr.health
+    cr.take_damage(32.0, 45.0)
+    var ok_combat: bool = cr.health < hp0 and cr.state == Creature.State.STAGGER
+
+    print("SELFTEST butcher=%s forage=%s fire=%s cook=%s eat=%s combat=%s" % [ok_butcher, ok_forage, ok_fire, ok_cook, ok_eat, ok_combat])
+    var passed: bool = ok_butcher and ok_forage and ok_fire and ok_cook and ok_eat and ok_combat
     print("SELFTEST: %s" % ("PASS" if passed else "FAIL"))
     get_tree().quit(0 if passed else 1)
