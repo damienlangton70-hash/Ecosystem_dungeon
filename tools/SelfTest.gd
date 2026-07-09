@@ -1,6 +1,6 @@
 extends Node
-## Headless self-test for the survival/cooking loop. Runs like the real game
-## (normal scene tree), drives the interaction methods directly, and asserts.
+## Headless self-test for the survival / cooking / foraging loop. Runs like the
+## real game and drives the interaction methods directly.
 ## Run:  godot --headless --path . res://tools/SelfTest.tscn
 ## Prints "SELFTEST: PASS" (exit 0) or "SELFTEST: FAIL" (exit 1).
 
@@ -10,29 +10,46 @@ func _ready() -> void:
     add_child(eco)
 
     var player = load("res://src/player/Player.gd").new()
-    add_child(player)                     # _ready() runs synchronously
+    add_child(player)
     player.global_position = Vector3.ZERO
 
+    # Butcher a dropped raw-meat pickup.
     var pk = load("res://src/items/Pickup.gd").new()
     pk.item_id = "raw_meat"
     pk.amount = 2
     add_child(pk)
     pk.global_position = Vector3(0, 0, 1)
-
     player._collect()
-    var ok_collect: bool = int(player.inventory.get("raw_meat", 0)) == 2
+    var ok_butcher: bool = int(player.inventory.get("raw_meat", 0)) == 2
 
+    # Let the freed pickup actually leave the tree before foraging.
+    await get_tree().process_frame
+
+    # Forage an herb.
+    var fo = load("res://src/items/Forageable.gd").new()
+    fo.item_id = "palethyme"
+    fo.display_name = "Palethyme"
+    add_child(fo)
+    fo.global_position = Vector3(0, 0, 1)
+    player._collect()
+    var ok_forage: bool = int(player.inventory.get("palethyme", 0)) == 1
+
+    # Build a campfire and cook meat + herb into a meal.
     player._build_campfire()
     var ok_fire: bool = get_tree().get_nodes_in_group("campfires").size() >= 1
-
     player._cook()
-    var ok_cook: bool = int(player.inventory.get("cooked_meat", 0)) == 1 and int(player.inventory.get("raw_meat", 0)) == 1
+    var ok_cook: bool = player.meals.size() == 1 \
+        and int(player.inventory.get("raw_meat", 0)) == 1 \
+        and int(player.inventory.get("palethyme", 0)) == 0
 
+    # Eat the meal -> hunger restored + a buff applied.
     player.survival.hunger = 40.0
     player._eat()
-    var ok_eat: bool = player.survival.hunger > 40.0 and int(player.inventory.get("cooked_meat", 0)) == 0
+    var ok_eat: bool = player.survival.hunger > 40.0 \
+        and player.meals.size() == 0 \
+        and player.active_buffs.size() >= 1
 
-    print("SELFTEST collect=%s fire=%s cook=%s eat=%s" % [ok_collect, ok_fire, ok_cook, ok_eat])
-    var passed: bool = ok_collect and ok_fire and ok_cook and ok_eat
+    print("SELFTEST butcher=%s forage=%s fire=%s cook=%s eat=%s" % [ok_butcher, ok_forage, ok_fire, ok_cook, ok_eat])
+    var passed: bool = ok_butcher and ok_forage and ok_fire and ok_cook and ok_eat
     print("SELFTEST: %s" % ("PASS" if passed else "FAIL"))
     get_tree().quit(0 if passed else 1)
