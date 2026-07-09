@@ -64,13 +64,16 @@ The first genuinely fun 10 minutes.
 ---
 
 ## Next up (for the very next run)
-1. **Combat depth:** heavy attack + a first real weapon; enemy attack tells/telegraphs; poise.
-2. **Content:** more of the food web on Floor 1 (a Tier-2/3 predator) + more flora variety.
-3. **Cooking depth:** food spoilage; a few signature recipes with stronger combined buffs.
-4. **Audio:** a low cave-ambience bed and basic combat / creature / fire SFX.
-5. **Descend:** make the shaft load Floor 2 (The Rootways) as a second environment.
+1. **Content:** more of the food web on Floor 1 (a Tier-2/3 predator) + more flora variety.
+2. **Cooking depth:** food spoilage; signature recipes with stronger combined buffs.
+3. **Audio:** a low cave-ambience bed and basic combat / creature / fire SFX.
+4. **Descend:** make the shaft load Floor 2 (The Rootways) as a second environment.
+5. **Combat polish:** player poise/stagger, a parry, and hit VFX/juice.
 
 ## Done recently
+- **M1 pt.4:** combat depth — visible blade + swing, light (LMB) & committed heavy (RMB) attacks,
+  enemy red wind-up telegraphs, and poise so heavy hits stagger. Lock-on moved to Q. Self-test
+  covers poise-break stagger.
 - **M1 pt.3:** enlarged Floor 1 to a big cavern; foraging (regrowing bushes/herbs) + recipe
   cooking (meals granting regen/stamina/defense/warmth buffs). Self-test covers forage→cook→eat.
 - **M1 pt.2:** butchering → raw meat, buildable campfire, cook raw→cooked, eat to restore
