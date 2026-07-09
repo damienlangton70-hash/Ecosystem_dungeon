@@ -336,7 +336,7 @@ func _build_hud() -> void:
     help.position = Vector2(16, 266)
     layer.add_child(help)
     var help2 := Label.new()
-    help2.text = "LMB attack · RMB lock-on · Ctrl dodge · E gather · B campfire · C cook · F eat"
+    help2.text = "LMB light · RMB heavy · Q lock-on · Ctrl dodge · E gather · B campfire · C cook · F eat"
     help2.position = Vector2(16, 288)
     layer.add_child(help2)
 
