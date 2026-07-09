@@ -25,3 +25,10 @@ func _process(delta: float) -> void:
 
 func feed(amount: float) -> void:
     hunger = minf(hunger + amount, max_hunger)
+
+## Spend stamina for a combat action; returns false if there isn't enough.
+func use_stamina(amount: float) -> bool:
+    if stamina < amount:
+        return false
+    stamina -= amount
+    return true
