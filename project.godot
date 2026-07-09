@@ -1,0 +1,24 @@
+; Deepforage — Godot 4.3 project configuration
+; A subterranean survival-cooking game inspired by Delicious in Dungeon.
+; NOTE: most content is built procedurally in GDScript for the vertical slice,
+; so specialist agents can replace stubs without wrestling scene-file merges.
+
+config_version=5
+
+[application]
+
+config/name="Deepforage"
+config/description="A subterranean survival-cooking game inspired by Delicious in Dungeon. Descend an ever-deeper dungeon, hunt an animal food-chain, cook what you catch, and survive an ecosystem that reacts to how you treat it."
+run/main_scene="res://src/game/Main.tscn"
+config/features=PackedStringArray("4.3", "Forward Plus")
+config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+
+[rendering]
+
+environment/defaults/default_clear_color=Color(0.02, 0.02, 0.035, 1)
