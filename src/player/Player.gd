@@ -1,9 +1,10 @@
 class_name Player
 extends CharacterBody3D
-## Third-person controller: skill-combat core + the survival/cooking loop.
-## Hunt -> butcher -> forage -> build campfire -> cook (meat + herb/fruit) ->
-## eat a meal that restores hunger, heals, and applies timed buffs. Starvation
-## drains health; buffs (regen / stamina / defense / warmth) reward good cooking.
+## Third-person controller: skill-combat core + survival/cooking loop.
+## Combat: LMB light attack, RMB heavy attack (slower, committed, big poise
+## damage -> staggers foes), Ctrl dodge-roll with i-frames, Q lock-on. A visible
+## blade swings on attack. Survival: hunt/butcher/forage/campfire/cook/eat with
+## timed buffs; starvation drains HP.
 
 const WALK_SPEED := 4.5
 const SPRINT_SPEED := 7.5
@@ -11,10 +12,10 @@ const JUMP_VELOCITY := 5.0
 const MOUSE_SENS := 0.0025
 const ACCEL := 10.0
 
-const ATTACK_STAMINA := 18.0
-const ATTACK_DAMAGE := 14.0
-const ATTACK_RANGE := 2.6
-const ATTACK_TIME := 0.35
+# Attack profiles: stamina, damage, total swing time, hit delay, poise damage, reach.
+const LIGHT := {"stamina": 16.0, "damage": 14.0, "time": 0.40, "hit": 0.12, "poise": 10.0, "range": 2.6}
+const HEAVY := {"stamina": 34.0, "damage": 32.0, "time": 0.75, "hit": 0.40, "poise": 45.0, "range": 3.0}
+
 const DODGE_STAMINA := 22.0
 const DODGE_SPEED := 11.0
 const DODGE_TIME := 0.45
@@ -28,9 +29,9 @@ const FOOD_RAW := 12.0
 var max_health := 100.0
 var health := 100.0
 
-var inventory := {"raw_meat": 0}   # item_id -> count (meat + foraged ingredients)
-var meals: Array = []              # cooked dishes ready to eat
-var active_buffs: Array = []       # [{type, mag, rem}]
+var inventory := {"raw_meat": 0}
+var meals: Array = []
+var active_buffs: Array = []
 var status_text := ""
 var _status_timer := 0.0
 
@@ -40,9 +41,13 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity", 
 
 var _pivot: Node3D
 var _camera: Camera3D
+var _weapon_pivot: Node3D
 var survival
 
 var _attack_timer := 0.0
+var _attack_total := 0.0
+var _attack_type := ""
+var _hit_done := true
 var _dodge_timer := 0.0
 var _iframe_timer := 0.0
 var _dodge_dir := Vector3.ZERO
@@ -54,6 +59,7 @@ func _ready() -> void:
     _spawn_point = global_position
     _build_body()
     _build_camera()
+    _build_weapon()
     _build_survival()
     add_to_group("player")
     Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
@@ -86,6 +92,31 @@ func _build_camera() -> void:
     _camera.position = Vector3(0, 0.2, 4.0)
     _camera.current = true
     _pivot.add_child(_camera)
+
+func _build_weapon() -> void:
+    _weapon_pivot = Node3D.new()
+    _weapon_pivot.position = Vector3(0.0, 1.1, 0.0)
+    add_child(_weapon_pivot)
+    var blade := MeshInstance3D.new()
+    var bmesh := BoxMesh.new()
+    bmesh.size = Vector3(0.08, 0.08, 1.15)
+    blade.mesh = bmesh
+    blade.position = Vector3(0.36, 0.0, -0.55)
+    var bmat := StandardMaterial3D.new()
+    bmat.albedo_color = Color(0.76, 0.79, 0.84)
+    bmat.metallic = 0.7
+    bmat.roughness = 0.3
+    blade.material_override = bmat
+    _weapon_pivot.add_child(blade)
+    var hilt := MeshInstance3D.new()
+    var hmesh := BoxMesh.new()
+    hmesh.size = Vector3(0.30, 0.09, 0.09)
+    hilt.mesh = hmesh
+    hilt.position = Vector3(0.36, 0.0, -0.02)
+    var hmat := StandardMaterial3D.new()
+    hmat.albedo_color = Color(0.30, 0.22, 0.14)
+    hilt.material_override = hmat
+    _weapon_pivot.add_child(hilt)
 
 func _build_survival() -> void:
     var script := load("res://src/systems/survival/SurvivalStats.gd")
@@ -122,13 +153,15 @@ func _unhandled_input(event: InputEvent) -> void:
         _pivot.rotation.x = _pitch
     elif event is InputEventMouseButton and event.pressed:
         if event.button_index == MOUSE_BUTTON_LEFT:
-            _try_attack()
+            _try_attack("light")
         elif event.button_index == MOUSE_BUTTON_RIGHT:
-            _toggle_lock()
+            _try_attack("heavy")
     elif event is InputEventKey and event.pressed and not event.echo:
         match event.keycode:
             KEY_CTRL:
                 _try_dodge()
+            KEY_Q:
+                _toggle_lock()
             KEY_E:
                 _collect()
             KEY_B:
@@ -156,12 +189,19 @@ func _nearest_in_group(group: String, rng: float):
     return best
 
 # ---------- combat ----------
-func _try_attack() -> void:
+func _try_attack(kind: String) -> void:
     if is_attacking() or is_dodging():
         return
-    if survival == null or not survival.use_stamina(ATTACK_STAMINA):
+    var a: Dictionary = HEAVY if kind == "heavy" else LIGHT
+    if survival == null or not survival.use_stamina(a["stamina"]):
         return
-    _attack_timer = ATTACK_TIME
+    _attack_type = kind
+    _attack_total = a["time"]
+    _attack_timer = a["time"]
+    _hit_done = false
+
+func _do_hit() -> void:
+    var a: Dictionary = HEAVY if _attack_type == "heavy" else LIGHT
     var origin := global_position
     var fwd := -global_transform.basis.z
     for c in get_tree().get_nodes_in_group("creatures"):
@@ -169,9 +209,21 @@ func _try_attack() -> void:
             continue
         var to: Vector3 = c.global_position - origin
         to.y = 0.0
-        if to.length() <= ATTACK_RANGE and fwd.dot(to.normalized()) > 0.35:
+        if to.length() <= a["range"] and fwd.dot(to.normalized()) > 0.30:
             if c.has_method("take_damage"):
-                c.take_damage(ATTACK_DAMAGE)
+                c.take_damage(a["damage"], a["poise"])
+
+func _update_weapon() -> void:
+    if _weapon_pivot == null:
+        return
+    if is_attacking() and _attack_total > 0.0:
+        var prog := 1.0 - (_attack_timer / _attack_total)
+        if _attack_type == "heavy":
+            _weapon_pivot.rotation = Vector3(lerpf(-2.0, 1.1, prog), 0.0, 0.0)
+        else:
+            _weapon_pivot.rotation = Vector3(0.0, lerpf(1.1, -1.1, prog), 0.0)
+    else:
+        _weapon_pivot.rotation = _weapon_pivot.rotation.lerp(Vector3(0.15, 0.25, 0.0), 0.2)
 
 func _try_dodge() -> void:
     if is_dodging():
@@ -325,6 +377,14 @@ func _physics_process(delta: float) -> void:
     _iframe_timer = maxf(_iframe_timer - delta, 0.0)
     _hitstun = maxf(_hitstun - delta, 0.0)
     _tick_buffs(delta)
+
+    if is_attacking() and not _hit_done:
+        var a: Dictionary = HEAVY if _attack_type == "heavy" else LIGHT
+        if _attack_total - _attack_timer >= a["hit"]:
+            _do_hit()
+            _hit_done = true
+    _update_weapon()
+
     if _status_timer > 0.0:
         _status_timer -= delta
         if _status_timer <= 0.0:
