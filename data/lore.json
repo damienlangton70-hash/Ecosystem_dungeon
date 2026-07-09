@@ -310,8 +310,8 @@
       "signature_moves": ["coiled wall/crevice ambush", "strike-and-wrap constrict (0.4s tell)"]
     },
     {
-      "id": "antler_warg",
-      "name": "Antler Warg",
+      "id": "rackjaw",
+      "name": "Rackjaw",
       "tier": 3,
       "role": "mid_predator_pack",
       "floors": [2, 3],
@@ -322,7 +322,7 @@
       "carrying_capacity_by_floor": {"2": 20, "3": 20},
       "pack_size": 5,
       "edible": true,
-      "butchery_yield": "Antler Warg Loin",
+      "butchery_yield": "Rackjaw Loin",
       "cook_note": "Fast pack hunter of the Rootways. Lean, flavorful meat, roasts well over a hot fire; antlers useful craft material.",
       "prep_hazard": null,
       "signature_moves": ["fast coordinated pack run-down", "bite-and-tackle with goring antlers"]
@@ -369,7 +369,7 @@
       "tier": 4,
       "role": "large_predator",
       "floors": [4],
-      "diet": ["Antler Warg", "Gravemaw Ursine cub", "Chasm Drake young"],
+      "diet": ["Rackjaw", "Gravemaw Ursine cub", "Chasm Drake young"],
       "behaviour_archetype": "apex_stalker",
       "base_aggression": 0.8,
       "awareness": 0.7,
@@ -387,7 +387,7 @@
       "tier": 4,
       "role": "large_predator_toxin",
       "floors": [3, 4],
-      "diet": ["Bog Saurian", "Antler Warg", "Tunnel Constrictor"],
+      "diet": ["Bog Saurian", "Rackjaw", "Tunnel Constrictor"],
       "behaviour_archetype": "ambush_predator",
       "base_aggression": 0.7,
       "awareness": 0.5,
@@ -418,8 +418,8 @@
       "signature_moves": ["territorial deep-water patrol", "surface-wake tell then long lunge (8-10m)"]
     },
     {
-      "id": "stonehide_rhinox",
-      "name": "Stonehide Rhinox",
+      "id": "stonehide_gorehorn",
+      "name": "Stonehide Gorehorn",
       "tier": 4,
       "role": "mega_herbivore",
       "floors": [3, 4],
@@ -430,7 +430,7 @@
       "carrying_capacity_by_floor": {"3": 5, "4": 5},
       "pack_size": 1,
       "edible": true,
-      "butchery_yield": "Rhinox Charge-Cut",
+      "butchery_yield": "Gorehorn Charge-Cut",
       "cook_note": "Not a predator, but lethal charge; adults untouchable. Killing an adult isn't realistic - avoidance is the intent, not a trophy hunt.",
       "prep_hazard": "extremely dangerous to harvest",
       "signature_moves": ["loud rear-back/bellow tell (0.5-0.8s)", "high-speed straight-line charge (10-14m)", "recover stagger window"]
@@ -459,7 +459,7 @@
       "tier": 5,
       "role": "apex_matriarch",
       "floors": [4],
-      "diet": ["Antler Warg", "Stonehide Rhinox calves", "rival hyenas"],
+      "diet": ["Rackjaw", "Stonehide Gorehorn calves", "rival hyenas"],
       "behaviour_archetype": "pack_hunter",
       "base_aggression": 0.75,
       "awareness": 0.75,
@@ -477,7 +477,7 @@
       "tier": 5,
       "role": "apex_aerial",
       "floors": [4, 5],
-      "diet": ["Chasm Drake", "Pale Sabertooth", "Antler Warg"],
+      "diet": ["Chasm Drake", "Pale Sabertooth", "Rackjaw"],
       "behaviour_archetype": "aerial_predator",
       "base_aggression": 0.75,
       "awareness": 0.85,
@@ -513,7 +513,7 @@
       "tier": 5,
       "role": "apex_burrower",
       "floors": [4, 5],
-      "diet": ["Stonehide Rhinox", "Gravemaw Ursine"],
+      "diet": ["Stonehide Gorehorn", "Gravemaw Ursine"],
       "behaviour_archetype": "apex_stalker",
       "base_aggression": 0.7,
       "awareness": 0.5,
@@ -559,7 +559,7 @@
   "flora": {
     "trees": [
       {"id": "glowcap_pillar_tree", "name": "Glowcap Pillar-tree", "use": "Giant luminescent fungal tree; light source; caps edible when cooked.", "floors": [1, 2], "edible": true},
-      {"id": "ironbark_deeproot", "name": "Ironbark Deeproot", "use": "Hardwood; timber for shelter & weapon hafts; shoots feed the Rhinox.", "floors": [1, 2], "edible": false},
+      {"id": "ironbark_deeproot", "name": "Ironbark Deeproot", "use": "Hardwood; timber for shelter & weapon hafts; shoots feed the Gorehorn.", "floors": [1, 2], "edible": false},
       {"id": "weeping_palewillow", "name": "Weeping Palewillow", "use": "Waterside; flexible withes for tents; bark brews a restorative tea.", "floors": [1, 2, 3], "edible": false}
     ],
     "fruit": [
@@ -602,7 +602,7 @@
     {"id": "ashen_cockatril_confit", "name": "Ashen Cockatril Confit", "ingredients": {"meat": "cinder_cockatril", "herb": "sulfur_chive", "fruit": "sourlantern"}, "cook_point": "either", "buffs": ["toxin_resist", "cleanse_poison"], "floor_availability": [1, 2], "note": "Cook it wrong and it's the last mistake you make twice."},
     {"id": "bog_saurian_tail_confit", "name": "Bog Saurian Tail Confit", "ingredients": {"meat": "bog_saurian", "herb": "marrow_mint", "fruit": "frostplum"}, "cook_point": "campfire", "buffs": ["cold_resist_strong", "heat_resist"], "floor_availability": [3], "note": "The note says the tail's the prime cut and it isn't wrong."},
     {"id": "constrictor_coil_sausage", "name": "Constrictor Coil Sausage", "ingredients": {"meat": "tunnel_constrictor", "herb": "stoneleaf_rosemary", "fruit": "cavern_currant"}, "cook_point": "either", "buffs": ["poise_defense", "hunger_restore_big"], "floor_availability": [2, 3], "note": "One kill, a week of sausage."},
-    {"id": "antler_warg_rootways_ragout", "name": "Antler Warg Rootways Ragout", "ingredients": {"meat": "antler_warg", "herb": "palethyme", "fruit": "gloomgrape"}, "cook_point": "campfire", "buffs": ["stamina_regen_strong"], "floor_availability": [2, 3], "note": "Pack hunters run you ragged before you ever land a killing blow."},
+    {"id": "rackjaw_rootways_ragout", "name": "Rackjaw Rootways Ragout", "ingredients": {"meat": "rackjaw", "herb": "palethyme", "fruit": "gloomgrape"}, "cook_point": "campfire", "buffs": ["stamina_regen_strong"], "floor_availability": [2, 3], "note": "Pack hunters run you ragged before you ever land a killing blow."},
     {"id": "gloomsage_vole_and_root_hotpot", "name": "Gloomsage Vole-and-Root Hotpot", "ingredients": {"meat": "blind_vole", "herb": "gloomsage", "fruit": "duskfig"}, "cook_point": "either", "buffs": ["detection_scent_lowered", "hunger_restore_big"], "floor_availability": [2], "note": "Cook this one over the Circle if you can - smoking it while trying to smell like nothing is the funniest kind of hypocrisy."},
     {"id": "sulfur_cleansed_basilisk_steak", "name": "Sulfur-Cleansed Basilisk Steak", "ingredients": {"meat": "dire_basilisk", "herb": "sulfur_chive", "fruit": "sourlantern"}, "cook_point": "either", "buffs": ["toxin_resist_strong", "minor_heal"], "floor_availability": [3, 4], "note": "Glands out, chive in, twice-checked."},
     {"id": "thornapple_sear", "name": "Thornapple Sear", "ingredients": {"meat": null, "herb": "sulfur_chive", "fruit": "thornapple"}, "cook_point": "either", "buffs": ["all_round_buff"], "floor_availability": [2, 3], "note": "The only fruit on this floor that's actively trying to kill you raw."},
@@ -612,7 +612,7 @@
     {"id": "marrow_hyena_bone_broth", "name": "Marrow Hyena Bone-Broth", "ingredients": {"meat": "marrow_hyena", "herb": "stoneleaf_rosemary", "fruit": "cavern_currant"}, "cook_point": "campfire", "buffs": ["poise_defense_strong", "hunger_restore"], "floor_availability": [2, 3, 4], "note": "Bone-cracker's own bones make the best stock."},
     {"id": "leviathan_eel_ember_grill", "name": "Leviathan-Eel Ember Grill", "ingredients": {"meat": "deepwater_leviathan_eel", "herb": "emberpepper", "fruit": "emberberry"}, "cook_point": "campfire", "buffs": ["warmth_strongest", "fire_resist"], "floor_availability": [3], "note": "One eel, a feast for a week, and a fire I had to feed all night to render it properly."},
     {"id": "sabertooth_prized_hide_chops", "name": "Sabertooth Prized-Hide Chops", "ingredients": {"meat": "pale_sabertooth", "herb": "stoneleaf_rosemary", "fruit": "goldcap_gooseberry"}, "cook_point": "either", "buffs": ["poise_defense_strong", "all_round_buff"], "floor_availability": [4], "note": "Glass-cannon in life, feast in death."},
-    {"id": "rhinox_charge_breaker_stew", "name": "Rhinox Charge-Breaker Stew", "ingredients": {"meat": "stonehide_rhinox", "herb": "deeproot_ginger", "fruit": "duskfig"}, "cook_point": "campfire", "buffs": ["warmth_strong", "hunger_restore_huge"], "floor_availability": [3, 4], "note": "You do not hunt a Rhinox for sport."},
+    {"id": "gorehorn_charge_breaker_stew", "name": "Gorehorn Charge-Breaker Stew", "ingredients": {"meat": "stonehide_gorehorn", "herb": "deeproot_ginger", "fruit": "duskfig"}, "cook_point": "campfire", "buffs": ["warmth_strong", "hunger_restore_huge"], "floor_availability": [3, 4], "note": "You do not hunt a Gorehorn for sport."},
     {"id": "chasm_drake_sear_feast", "name": "Chasm Drake Sear-Feast", "ingredients": {"meat": "chasm_drake", "herb": "emberpepper", "fruit": "emberberry"}, "cook_point": "campfire", "buffs": ["warmth_strongest", "fire_resist_strong"], "floor_availability": [3, 4], "note": "Wingless it may be, but it still breathes like a forge."},
     {"id": "gravemaw_ursine_winter_feast", "name": "Gravemaw Ursine Winter Feast", "ingredients": {"meat": "gravemaw_ursine", "herb": "marrow_mint", "fruit": "frostplum"}, "cook_point": "campfire", "buffs": ["cold_resist_strongest", "hunger_restore_huge", "minor_heal"], "floor_availability": [3, 4], "note": "A cave bear is a nightmare to fight and a feast to eat, in that exact order."},
     {"id": "saffron_gilded_gooseberry_crown", "name": "Saffron-Gilded Gooseberry Crown", "ingredients": {"meat": "prime_meat_any", "herb": "cave_saffron", "fruit": "goldcap_gooseberry"}, "cook_point": "magic_circle", "buffs": ["amplify_existing_buff", "all_round_buff"], "floor_availability": [2, 3, 4], "note": "Two rare things on one plate."},
