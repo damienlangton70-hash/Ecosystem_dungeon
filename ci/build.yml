@@ -1,0 +1,56 @@
+# NOTE: This is the CI build workflow. The GitHub integration could not write it to
+# .github/workflows/ (that path needs the GitHub App 'Workflows' permission).
+# To activate CI: move this file to .github/workflows/build.yml in your local clone
+# and push it (or grant the app Workflows permission and let the agent place it).
+
+name: Build Deepforage
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GODOT_VERSION: "4.3-stable"
+      GODOT_DOTVER: "4.3.stable"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Godot + export templates
+        run: |
+          set -e
+          curl -sSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}_linux.x86_64" godot
+          chmod +x godot
+          curl -sSL -o templates.tpz "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_export_templates.tpz"
+          unzip -q templates.tpz
+          TPL="$HOME/.local/share/godot/export_templates/${GODOT_DOTVER}"
+          mkdir -p "$TPL"
+          mv templates/* "$TPL/"
+
+      - name: Validate project (gate)
+        run: GODOT="$PWD/godot" bash tools/validate.sh .
+
+      - name: Export Linux
+        continue-on-error: true
+        run: |
+          mkdir -p build/linux
+          ./godot --headless --path . --export-release "Linux" build/linux/Deepforage.x86_64 \
+            || ./godot --headless --path . --export-release "Linux/X11" build/linux/Deepforage.x86_64
+
+      - name: Export Windows
+        continue-on-error: true
+        run: |
+          mkdir -p build/windows
+          ./godot --headless --path . --export-release "Windows Desktop" build/windows/Deepforage.exe
+
+      - name: Upload desktop builds
+        uses: actions/upload-artifact@v4
+        with:
+          name: Deepforage-desktop
+          path: build/
+          if-no-files-found: warn
