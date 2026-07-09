@@ -44,7 +44,7 @@ I have kept this journal since my first descent, when I mistook a Mosslamb's ble
 
 **On the plate:** Lean, modest yield. Spit-roast fast over high heat before it toughens — a hard-won little meal.
 
-**Ecology:** Prey for Ashjackal packs, Hookbeak Ridgehawk, and young Antler Warg. Speed is its only defense against three hunters.
+**Ecology:** Prey for Ashjackal packs, Hookbeak Ridgehawk, and young Rackjaw. Speed is its only defense against three hunters.
 
 ## Capglow Snail
 
@@ -146,7 +146,7 @@ I have kept this journal since my first descent, when I mistook a Mosslamb's ble
 
 **On the plate:** Tough meat that wants long cooking — stewing is far more forgiving than roasting.
 
-**Ecology:** Predator of Springhare and Deep Quail; prey for Gloamstalker Lynx, Marrow Hyena, Antler Warg. Pack boldness is a visible hostility thermometer.
+**Ecology:** Predator of Springhare and Deep Quail; prey for Gloamstalker Lynx, Marrow Hyena, Rackjaw. Pack boldness is a visible hostility thermometer.
 
 ## Rockback Boar
 
@@ -298,7 +298,7 @@ I have kept this journal since my first descent, when I mistook a Mosslamb's ble
 
 **Ecology:** Predator of Blind Vole, Gloomferret, Springhare; prey for Dire Basilisk.
 
-## Antler Warg
+## Rackjaw
 
 **Tier & Role:** Tier 3 — Mid Predator, pack. **Floors:** 2, 3.
 
@@ -356,7 +356,7 @@ I have kept this journal since my first descent, when I mistook a Mosslamb's ble
 
 **Tier & Role:** Tier 4 — Large Predator. **Floors:** 4.
 
-**Diet:** Antler Warg, Gravemaw Ursine cubs, Chasm Drake young.
+**Diet:** Rackjaw, Gravemaw Ursine cubs, Chasm Drake young.
 
 **Appearance:** Lean, long-fanged low-poly big cat built for speed over mass — narrow-waisted, with two dramatically oversized curved fangs as its signature feature, rendered as clean sharp wedges. Palette: near-white to pale bone-grey coat with cold violet bioluminescent striping — a striking, ghostly profile against the dark Bonefields.
 
@@ -366,13 +366,13 @@ I have kept this journal since my first descent, when I mistook a Mosslamb's ble
 
 **On the plate:** The hide is genuinely prized craft material; the meat, lean, is excellent quickly seared.
 
-**Ecology:** Predator of Antler Warg and of Ursine/Drake young; prey for The Gloom Tyrant and Cavern Roc.
+**Ecology:** Predator of Rackjaw and of Ursine/Drake young; prey for The Gloom Tyrant and Cavern Roc.
 
 ## Dire Basilisk
 
 **Tier & Role:** Tier 4 — Large Predator, toxin. **Floors:** 3, 4.
 
-**Diet:** Bog Saurian, Antler Warg, Tunnel Constrictor.
+**Diet:** Bog Saurian, Rackjaw, Tunnel Constrictor.
 
 **Appearance:** Heavy, low-slung low-poly reptile with a distinctive frilled crest along neck and skull, flat sickly yellow-green against a dull stone-grey scaled body — an immediate "do not touch" read. A venomous teal-green glow pulses at the throat before it strikes — a genuine, learnable tell.
 
@@ -382,7 +382,7 @@ I have kept this journal since my first descent, when I mistook a Mosslamb's ble
 
 **On the plate:** Toxin glands must be removed or neutralized with Sulfur Chive during prep. Properly handled, a genuine trophy dish.
 
-**Ecology:** Predator of Bog Saurian, Antler Warg, Tunnel Constrictor.
+**Ecology:** Predator of Bog Saurian, Rackjaw, Tunnel Constrictor.
 
 ## Deepwater Leviathan-eel
 
@@ -400,7 +400,7 @@ I have kept this journal since my first descent, when I mistook a Mosslamb's ble
 
 **Ecology:** Apex-adjacent predator of Bog Saurian, Grave Otter, and aquatic prey broadly; unchallenged in deep water short of Tier 5.
 
-## Stonehide Rhinox
+## Stonehide Gorehorn
 
 **Tier & Role:** Tier 4 — Mega-herbivore. **Floors:** 3, 4.
 
@@ -442,7 +442,7 @@ I have kept this journal since my first descent, when I mistook a Mosslamb's ble
 
 **Tier & Role:** Tier 5 — Apex, matriarch. **Floors:** 4.
 
-**Diet:** Antler Warg, Stonehide Rhinox calves, rival hyenas.
+**Diet:** Rackjaw, Stonehide Gorehorn calves, rival hyenas.
 
 **Appearance:** An outsized low-poly Marrow Hyena, scarred and heavy-shouldered where lesser Hyenas are lean, a mane of pale bone-white fur along the neck marking her rank at a glance. Palette: the same bone-and-marrow blotching, darker and more saturated, a commanding amber eye-glow.
 
@@ -452,13 +452,13 @@ I have kept this journal since my first descent, when I mistook a Mosslamb's ble
 
 **On the plate:** Rarely hunted, rarely worth it — surviving her pack is the point, not the meal.
 
-**Ecology:** Matriarch and commander of Marrow Hyena packs; predator of Antler Warg and Rhinox calves. Her loss would likely fragment regional pack structure — a small echo of the Hollow Stag's role.
+**Ecology:** Matriarch and commander of Marrow Hyena packs; predator of Rackjaw and Gorehorn calves. Her loss would likely fragment regional pack structure — a small echo of the Hollow Stag's role.
 
 ## Cavern Roc
 
 **Tier & Role:** Tier 5 — Apex, aerial. **Floors:** 4, 5.
 
-**Diet:** Chasm Drake, Pale Sabertooth, Antler Warg.
+**Diet:** Chasm Drake, Pale Sabertooth, Rackjaw.
 
 **Appearance:** A genuinely massive low-poly raptor, wings spanning wider than most chambers feel comfortable with — the Hookbeak Ridgehawk's design language scaled into something that blots out firelight passing overhead. Palette: deep ridge-brown and bone-cream plumage, a warm amber eye-glow visible before the shape is.
 
@@ -468,7 +468,7 @@ I have kept this journal since my first descent, when I mistook a Mosslamb's ble
 
 **On the plate:** A trophy hunt in every sense — bringing one down is the achievement; the meat is almost beside the point.
 
-**Ecology:** Apex aerial predator of Chasm Drake, Pale Sabertooth, Antler Warg. A real check on large predators venturing into open ground.
+**Ecology:** Apex aerial predator of Chasm Drake, Pale Sabertooth, Rackjaw. A real check on large predators venturing into open ground.
 
 ## The Sunless Wyrm
 
@@ -490,7 +490,7 @@ I have kept this journal since my first descent, when I mistook a Mosslamb's ble
 
 **Tier & Role:** Tier 5 — Apex, burrower. **Floors:** 4, 5.
 
-**Diet:** Stonehide Rhinox, Gravemaw Ursine.
+**Diet:** Stonehide Gorehorn, Gravemaw Ursine.
 
 **Appearance:** Colossal, thick, rounded low-poly burrowing silhouette, almost architectural in its blockiness, built around massive shovel-like foreclaws that dwarf its already huge frame. Palette: pale subterranean grey-white — the color of something that has never surfaced — with dull amber glow-flecks along the claws from packed mineral dust.
 
@@ -500,7 +500,7 @@ I have kept this journal since my first descent, when I mistook a Mosslamb's ble
 
 **On the plate:** Not a realistic hunt for most delvers — this entry exists for completeness and awe.
 
-**Ecology:** Burrower-predator of Stonehide Rhinox and Gravemaw Ursine — one of the few things that can threaten an adult Rhinox. Its burrowing reshapes terrain.
+**Ecology:** Burrower-predator of Stonehide Gorehorn and Gravemaw Ursine — one of the few things that can threaten an adult Gorehorn. Its burrowing reshapes terrain.
 
 ## The Hollow Stag
 
