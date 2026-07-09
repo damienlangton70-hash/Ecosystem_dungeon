@@ -95,6 +95,7 @@ the ambush-predator archetype in `docs/CREATURE_BEHAVIOUR.md`.)
 5. **Audio depth:** a warm music sting at camp; distinct per-creature calls.
 
 ## Done recently
+- **lore: originality rename** — Antler Warg -> **Rackjaw** and Stonehide Rhinox -> **Stonehide Gorehorn**, swept across all lore docs + `data/lore.json` + `FOOD_WEB.md`; removes external-IP name collisions (Warg = Tolkien/GoT, Rhinox = Transformers). Docs/data only, not in code yet — no gameplay impact.
 - **M1 pt.6:** procedural audio — cave-ambience bed, campfire crackle, and combat/creature SFX
   (whoosh / thud / growl / hurt / chime), synthesized in code (no binary assets).
 - **Lore layer — design one step ahead of production:** full **BESTIARY** (30 creatures +
@@ -127,7 +128,7 @@ the ambush-predator archetype in `docs/CREATURE_BEHAVIOUR.md`.)
   system is implemented it should consume the matching doc + `data/lore.json` rather than
   re-inventing values, and Lore should keep extending the layer so code is never design-blocked.
 - **A few ecology values need a Mechanics/human tuning call** (flagged by the Lore team): pack
-  "one-attacker-commits" fairness, attack wind-up floor (~0.35–0.55s), Stonehide Rhinox charge
+  "one-attacker-commits" fairness, attack wind-up floor (~0.35–0.55s), Stonehide Gorehorn charge
   damage, the Hollow Stag keystone hostility-spike value, and whether insects are true swarm
   entities vs. individually-pathed creatures (a real build-cost fork).
 - **Butchery-quality tiers** (Botched/Clean/Precise → meal-quality multipliers) are a *new* proposed
