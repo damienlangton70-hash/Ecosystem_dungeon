@@ -175,7 +175,7 @@ WANDER → ALERT → FLEE → (RETURN) → GRAZE → WANDER
 
 ### (b) Pack hunter
 
-**Covers:** Ashjackal (existing, Tier 2), Marrow Hyena (Tier 3), Antler Warg (Tier 3),
+**Covers:** Ashjackal (existing, Tier 2), Marrow Hyena (Tier 3), Rackjaw (Tier 3),
 Elder Marrowmother's hyena packs (Tier 5 command-layer, see note below).
 
 **States** (extends existing `WANDER`/`CHASE`/`ATTACK`, adds `ALERT`, `STALK`, `CIRCLE`,
@@ -245,7 +245,7 @@ WANDER → ALERT → STALK → CIRCLE ⇄ ATTACK → (CHASE if target flees) →
 | attack wind-up (tell) | 0.55–0.7s | flat (wind-up is a physical animation read, not a "mood" stat — keep it consistent so players can learn it) |
 | attack recovery (post-swing, vulnerable) | 0.5–0.8s | flat |
 | attack cooldown per member | 1.4–1.8s | `/ aggression_multiplier()` (hostile packs attack more often) |
-| pack size | 3–5 (Ashjackal), 4–6 (Marrow Hyena), 4–6 (Antler Warg) | see §3 |
+| pack size | 3–5 (Ashjackal), 4–6 (Marrow Hyena), 4–6 (Rackjaw) | see §3 |
 | flee-health-threshold (individual) | below 20% of `max_health` AND pack morale broken (see FLEE state) → individual also breaks even if pack hasn't collectively | — |
 | flee_pack_threshold | ~50% of engaged pack headcount | — |
 
@@ -504,7 +504,7 @@ SURFACE-WANDER (on land/shallows) → SUBMERGE (on threat/hunt) → LUNGE → AT
 
 ### (f) Mega-herbivore (defensive charge)
 
-**Covers:** Stonehide Rhinox (T4). This is a **single-species archetype** by roster (no other
+**Covers:** Stonehide Gorehorn (T4). This is a **single-species archetype** by roster (no other
 creature shares this exact shape), but specced fully as its own category per the brief's
 9-archetype structure since its behaviour is qualitatively distinct from every predator type.
 
@@ -518,7 +518,7 @@ GRAZE/WANDER → THREATENED → CHARGE → RECOVER → GRAZE/WANDER
 ```
 
 - **Core identity: base_aggression is low (0.5, per FOOD_WEB.md, and note that's HIGH for a
-  "grazer" but reflects danger, not initiation — Rhinox does not hunt or chase unprompted).**
+  "grazer" but reflects danger, not initiation — Gorehorn does not hunt or chase unprompted).**
   It never transitions to `CHASE` the way a predator does — it has no analogue of the existing
   `CHASE` state at all. It grazes/wanders like archetype (a) but does NOT flee when merely
   approached — it's "not a predator, but lethal charge; adults untouchable" per FOOD_WEB.md,
@@ -541,12 +541,12 @@ GRAZE/WANDER → THREATENED → CHARGE → RECOVER → GRAZE/WANDER
   `attack_damage` — this is a "you got hit by a rhino" event, should be able to take a large
   chunk of player health, e.g. 30–40% of a fresh player's max_health as a strong tuning
   starting point given `Player.max_health = 100.0`).
-- `RECOVER`: after a charge (hit or miss), the Rhinox is stationary and vulnerable for
+- `RECOVER`: after a charge (hit or miss), the Gorehorn is stationary and vulnerable for
   `recover_duration` (1.5–2.5s, a real punish window — "adults untouchable" refers to
   head-on/mid-charge, not this opening) before returning to `GRAZE`/`WANDER`. If it hit a
   wall/rock during `CHARGE`, extend `recover_duration` further (it stumbled harder) — a nice
   emergent reward for baiting a charge into terrain.
-- Never enters `FLEE` — a Rhinox this large doesn't run from the player; if its health drops
+- Never enters `FLEE` — a Gorehorn this large doesn't run from the player; if its health drops
   low it should stay in the GRAZE/THREATENED/CHARGE loop rather than despawn-fleeing, though
   design intent is this creature is meant to be *skipped*, not farmed, for most players (see
   §4 tuning note on whether it should even reliably die to sustained melee at intended player
@@ -557,21 +557,21 @@ GRAZE/WANDER → THREATENED → CHARGE → RECOVER → GRAZE/WANDER
 
 | Param | Value | Scaling |
 |---|---|---|
-| provoke_radius | 3–5m | `× awareness_multiplier()` (a stirred-up floor's Rhinox is touchier) |
+| provoke_radius | 3–5m | `× awareness_multiplier()` (a stirred-up floor's Gorehorn is touchier) |
 | provoke_dwell | 2–3s | `/ awareness_multiplier()` (shorter fuse when hostile) |
 | threatened tell duration | 0.5–0.8s (deliberately loud/obvious) | flat |
 | charge speed | `move_speed × 2.2–2.5` | `× aggression_multiplier()` capped ×1.15 (should stay dodgeable even hostile — this is a "skill check" creature, not a "grind" one) |
 | charge distance | 10–14m | flat |
 | charge damage | 30–40% of a baseline 100 HP player pool (i.e. large, tune against actual player max_health) | flat — do not scale charge damage by aggression_multiplier; scaling detection/frequency is enough, a one-shot-adjacent hit getting worse with hostility risks feeling unfair rather than "the world reacting" |
 | recover_duration | 1.5–2.5s (longer if charge hit terrain) | flat |
-| pack size | 1 (solitary adult); FOOD_WEB.md implies calves exist (Elder Marrowmother's diet includes "Rhinox calf") — calves, if implemented, would be archetype (a) shape, small and fleeing, not this archetype | — |
+| pack size | 1 (solitary adult); FOOD_WEB.md implies calves exist (Elder Marrowmother's diet includes "Gorehorn calf") — calves, if implemented, would be archetype (a) shape, small and fleeing, not this archetype | — |
 
 **Ecosystem hooks:**
 - Standard `record_kill()` if the player does manage to kill one — but per "adults
   untouchable" flavor, expect this to be rare; that's fine, `carrying_capacity` for this
   species should be set low regardless (few individuals per floor) since it's meant to be
   encountered, not farmed.
-- Rhinox is prey for Titan Molebeast (T5) per FOOD_WEB.md diet list — no special hook, that's
+- Gorehorn is prey for Titan Molebeast (T5) per FOOD_WEB.md diet list — no special hook, that's
   a predator-prey relationship the ecosystem simulation (population math) already models
   generically; behaviourally the Molebeast is archetype (g)/(c)-adjacent (burrower ambush,
   see §3), not something this archetype needs to react to directly.
@@ -851,8 +851,8 @@ already-shipped numbers (Mosslamb 80, Ashjackal 30, per `Main.gd`) as the calibr
 | Species | Arch. | Tier | Floors | Cap. (starting) | Aggr. | Aware. | Pack | Edible | Signature moves (tell) |
 |---|---|---|---|---|---|---|---|---|---|
 | **Gloomferret** | (c) | 2 | 1,2 | 35-40 | 0.35 | 0.6 | 1 | yes | Low-profile stalk (crouched gait, visually distinct from upright wander) → short lunge-bite (0.5s wind-up, 3-4m lunge distance) at prey-scale targets; against the player specifically, treat as a cautious opportunist: `flee-health-threshold` on the higher end (35-40%, it's "gamey" not tough per flavor, and a genuine risk-averse skirmisher) — good early "sometimes flees, sometimes commits" variety creature for Floor 1. |
-| **Ashjackal** | (b) | 2 | 1,2 | 30 (shipped value, `Main.gd`) | 0.45 | 0.6 | 3-5 | yes | *(shipped baseline to extend, not replace)* Pack howl-alert (broadcasts pack-coordination per archetype b, audible cue for the player too — a howl is a fair warning that more are coming) → Circle-and-flank (archetype b CIRCLE state) → Snapping bite (0.55-0.7s wind-up, per archetype-b table) → pack breaks and flees if headcount drops below half with no landed hits in 8-10s. THIS is the archetype-b reference implementation — build it here first, then reuse the shape for Marrow Hyena/Antler Warg. |
-| **Rockback Boar** | (b)-lite/(f)-lite | 2 | 1,2 | 35-40 | 0.4 | 0.4 | 1 (solitary omnivore, not a true pack hunter despite sharing some charge-DNA with (f)) | yes | Foraging WANDER (roots/carrion, per omnivore diet) → on threat, a SHORT telegraphed charge (smaller-scale version of archetype (f)'s charge: `move_speed × 1.6-1.8`, 6-8m distance, 0.5-0.6s rear-back tell — noticeably shorter/weaker than Rhinox's full mega-herbivore charge, this is "dangerous charge" per flavor, not "untouchable") → RECOVER (1-1.5s) → resumes foraging. Doesn't flee readily (aggression 0.4 is mid-range) but isn't a relentless hunter either — a genuine omnivore-opportunist read. |
+| **Ashjackal** | (b) | 2 | 1,2 | 30 (shipped value, `Main.gd`) | 0.45 | 0.6 | 3-5 | yes | *(shipped baseline to extend, not replace)* Pack howl-alert (broadcasts pack-coordination per archetype b, audible cue for the player too — a howl is a fair warning that more are coming) → Circle-and-flank (archetype b CIRCLE state) → Snapping bite (0.55-0.7s wind-up, per archetype-b table) → pack breaks and flees if headcount drops below half with no landed hits in 8-10s. THIS is the archetype-b reference implementation — build it here first, then reuse the shape for Marrow Hyena/Rackjaw. |
+| **Rockback Boar** | (b)-lite/(f)-lite | 2 | 1,2 | 35-40 | 0.4 | 0.4 | 1 (solitary omnivore, not a true pack hunter despite sharing some charge-DNA with (f)) | yes | Foraging WANDER (roots/carrion, per omnivore diet) → on threat, a SHORT telegraphed charge (smaller-scale version of archetype (f)'s charge: `move_speed × 1.6-1.8`, 6-8m distance, 0.5-0.6s rear-back tell — noticeably shorter/weaker than Gorehorn's full mega-herbivore charge, this is "dangerous charge" per flavor, not "untouchable") → RECOVER (1-1.5s) → resumes foraging. Doesn't flee readily (aggression 0.4 is mid-range) but isn't a relentless hunter either — a genuine omnivore-opportunist read. |
 | **Spinefowl** | (a)-lite/(c)-lite | 2 | 1,2 | 45-50 | 0.3 | 0.5 | 1, loose flock 2-4 (cosmetic) | yes (spines removed first, per flavor — a butchery-quality note for Mechanics/cooking, not a behaviour note) | Mostly grazer-shaped (archetype a ALERT→FLEE) since it preys on insects/small fish rather than chasing large targets, but will peck-attack (short 0.4s jab, low damage) if directly cornered rather than only fleeing — a mild archetype-c flavor at the very low end of aggression. |
 | **Grave Otter** | (e) | 2 | 1,2 | 30-35 (aquatic, water-confined) | 0.25 | 0.5 | 2-3 (cosmetic family raft) | yes | Aquatic archetype-e baseline: submerge-and-dart on ALERT; low aggression (0.25) means it's much closer to prey-behaviour than predator-behaviour despite Tier 2 status — mostly flees, rarely fights, matches "oily... good for warming stews" as a low-drama harvest target. |
 | **Cinder Cockatril** | (a)/(c)-lite | 2 | 1,2 | 35-40 | 0.4 | 0.5 | 1 | mildly toxic RAW (edible cooked, per Sulfur Chive note — cooking-system flag, not a behaviour-state difference, see archetype (c) toxin note) | Ground-bird predator of small prey (Deep Quail, Blind Vole per diet) — archetype (a)/(c) hybrid: normally skittish/fleeing around the player (moderate aggression 0.4, closer to Rockback Boar's profile than Ashjackal's), but a quick peck-lunge (0.45-0.5s tell, short range 2-3m) if cornered. ATTACK hitbox should flag a toxin-on-hit status per archetype-c's toxin note, resolved by the cooking/status system, not a new behaviour state. |
@@ -866,7 +866,7 @@ already-shipped numbers (Mosslamb 80, Ashjackal 30, per `Main.gd`) as the calibr
 | **Marrow Hyena** | (b) | 3 | 2,3,4 (drawn to carrion floor-wide per scavenger flavor) | 20-25 | 0.65 | 0.7 | 4-6 | yes | Direct reuse of Ashjackal's archetype-b shape at larger pack size and higher aggression/awareness (bigger circle_radius to match bigger pack, shorter per-member commit windows since aggression 0.65 > Ashjackal's 0.45). Unique addition: passive SCAVENGE sub-state (§2b hook) — periodically checks for unbutchered `raw_meat` pickups within an extended sense radius and paths to consume them; this is the concrete mechanical expression of FOOD_WEB.md's "drawn to wasted carcasses" flavor line, and the clearest in-game teaching moment for the waste/attention rule. |
 | **Bog Saurian** | (e) | 3 | 3 (Sunless Marsh is its home per "reptile" + aquatic diet skew) | 15-18 | 0.6 | 0.5 | 1 | yes (tail is prime meat, per flavor — a butchery-quality/yield note) | Semi-aquatic archetype-e: patrols shallow/bank WANDER, SUBMERGE on alert (visual read reduction, intentional per flavor), LUNGE from water (0.5s tell, 5-6m burst) onto bank targets. Moderate awareness (0.5, lower than most T3) fits "ambush from the murk" rather than "sees you coming." |
 | **Tunnel Constrictor** | (c) | 3 | 2,3 | 10-14 | 0.5 | 0.4 | 1 | yes ("huge yield" per flavor) | The purest archetype-c AMBUSH specialist in the roster — low awareness (0.4, lowest T3 value) but devastating commit: lies in wait IN a wall/floor recess (visually hidden, not just crouched) with an unusually tight `ambush_trigger_radius` (2-3m, tightest in the roster) and a correspondingly strong, sudden lunge (0.4s tell — right at the archetype's floor, since the whole point is "sudden ambush from walls" per flavor — but paired with a loud audio/visual cue the instant it breaks cover so the short timer stays fair). Big single-target grab-and-constrict attack rather than a fast bite — recommend a longer `attack recovery` (0.8-1.0s) than a typical ambusher to compensate for the very short wind-up, keeping overall fairness balanced across the whole attack cycle even though the initial tell is brief. |
-| **Antler Warg** | (b) | 3 | 2,3 | 18-22 | 0.6 | 0.7 | 4-6 | yes | Second archetype-b pack reuse (after Ashjackal, alongside Marrow Hyena) — "fast pack hunter of the Rootways" per flavor: higher stalk/circle speed than Ashjackal or Hyena (`move_speed × 0.8` stalk instead of the archetype baseline 0.7) to express "fast," otherwise standard pack-hunter shape. Good candidate for the Floor 2 "second pack predator" so players learn packs generalize rather than being an Ashjackal-only quirk. |
+| **Rackjaw** | (b) | 3 | 2,3 | 18-22 | 0.6 | 0.7 | 4-6 | yes | Second archetype-b pack reuse (after Ashjackal, alongside Marrow Hyena) — "fast pack hunter of the Rootways" per flavor: higher stalk/circle speed than Ashjackal or Hyena (`move_speed × 0.8` stalk instead of the archetype baseline 0.7) to express "fast," otherwise standard pack-hunter shape. Good candidate for the Floor 2 "second pack predator" so players learn packs generalize rather than being an Ashjackal-only quirk. |
 
 ### Tier 4 — Large predators (Floor 3-4; lighter-but-complete detail per production priority — these arrive well after Floor 1-2)
 
@@ -877,7 +877,7 @@ already-shipped numbers (Mosslamb 80, Ashjackal 30, per `Main.gd`) as the calibr
 | **Pale Sabertooth** | (g) | 4 | 3,4 | 4-7 | 0.8 | 0.7 | 1 | yes (prized hide — a crafting/yield hook, not behavioural) | "Glass-cannon predator" per flavor — this is the one T4 that should hit VERY hard but also be relatively fragile itself (lower `max_health` than Ursine despite being a full apex-stalker archetype) and highly committed once it engages (short cooldowns, aggressive re-engagement) rather than territorial-patient like Ursine — a fast, dangerous burst-damage fight rather than a slow attrition one. |
 | **Dire Basilisk** | (c) | 4 | 3,4 | 5-8 | 0.7 | 0.5 | 1 | yes (toxin glands — must be Sulfur-Chive-handled, cooking-system flag) | Solo ambush with a toxin-on-hit ATTACK (per archetype-c toxin note) — moderate awareness (0.5, on the low side for T4) rewards careful approach/avoidance; the toxin makes even a single landed hit meaningfully costly (DoT), so the fair-tell requirement matters MORE here than for a pure-damage predator — do not shorten this creature's wind-up below the archetype-c standard (0.5-0.65s) even under high aggression_multiplier, given the stacked risk of a toxin hit. |
 | **Deepwater Leviathan-eel** | (e) | 4 | 3 (Sunless Marsh's deep pools specifically) | 3-5 (aquatic apex-of-the-water, very low pop per flavor "enormous") | 0.65 | 0.5 | 1 | yes ("enormous, oily meat" — big single-carcass yield) | Fully water-confined per archetype (e) — the water feature itself is effectively this creature's whole territory (see archetype-e note on treating water volumes like lair territory); long-range lunge from open water onto bank/shallow targets (8-10m burst, longer than Bog Saurian's, reflecting size) with a correspondingly longer, very visible tell (a surface disturbance/wake cue building for ~0.6-0.7s before the lunge breaks water) since it's meant to be a "the pool itself is dangerous" set-piece threat rather than a fast-twitch ambush. |
-| **Stonehide Rhinox** | (f) | 4 | 3,4 | 4-6 (few individuals, "adults untouchable" per flavor) | 0.5 | 0.3 | 1 | not really hunted in practice per flavor, but not flagged non-edible in canon either — treat `edible = true` structurally, expect rare use | Full archetype-f mega-herbivore charge, exactly as specced in §2(f) — this IS the reference implementation for that archetype, only entry in the roster that needs it. |
+| **Stonehide Gorehorn** | (f) | 4 | 3,4 | 4-6 (few individuals, "adults untouchable" per flavor) | 0.5 | 0.3 | 1 | not really hunted in practice per flavor, but not flagged non-edible in canon either — treat `edible = true` structurally, expect rare use | Full archetype-f mega-herbivore charge, exactly as specced in §2(f) — this IS the reference implementation for that archetype, only entry in the roster that needs it. |
 
 ### Tier 5 — Apex (Floor 4-5; lighter-but-complete detail — furthest from current production)
 
@@ -922,10 +922,10 @@ playtesting (Damien + Mechanics) to move them, roughly in priority order:
    "must clear the player's 0.35s i-frame window with margin," but where exactly the margin
    should sit (bare-minimum-clears-it vs. comfortably-readable) is a feel call that depends on
    actual combat-camera framing and animation clarity, which I can't evaluate from a doc.
-3. **Rhinox charge damage as 30-40% of player max_health** — this is a big, opinionated
+3. **Gorehorn charge damage as 30-40% of player max_health** — this is a big, opinionated
    number (an "avoid, don't fight" design intent for a Tier 4 creature). Confirm this is the
    intended power-curve position before Floor 2-3 content locks around it, since it implies
-   Rhinox is meant to be a hazard-to-route-around rather than a normal kill target at that
+   Gorehorn is meant to be a hazard-to-route-around rather than a normal kill target at that
    point in player progression.
 4. **The keystone hostility-floor value (0.7-0.85) on Hollow Stag death** — this is the
    headline "catastrophic" number in the whole spec and I picked it somewhat arbitrarily to be
