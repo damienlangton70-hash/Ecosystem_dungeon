@@ -13,6 +13,8 @@ const SPRINT_SPEED := 7.5
 const JUMP_VELOCITY := 5.0
 const MOUSE_SENS := 0.0025
 const ACCEL := 10.0
+# Yaw change (rad/s) that maps to a full-speed turn-in-place animation.
+const TURN_FULL_RATE := 2.4
 
 # Attack profiles: stamina, damage, total swing time, hit delay, poise damage, reach.
 # NOTE: LIGHT.time / HEAVY.time and .hit are mirrored by PlayerRig's attack clip
@@ -40,6 +42,7 @@ var status_text := ""
 var _status_timer := 0.0
 
 var _yaw := 0.0
+var _prev_yaw := 0.0
 var _pitch := -0.26
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity", 9.8)
 
@@ -63,6 +66,7 @@ var lock_target = null
 
 func _ready() -> void:
     _spawn_point = global_position
+    _prev_yaw = rotation.y
     _build_body()
     _build_rig()
     _build_camera()
@@ -405,9 +409,15 @@ func _physics_process(delta: float) -> void:
     _hitstun = maxf(_hitstun - delta, 0.0)
     _tick_buffs(delta)
 
-    # Feed the animation locomotion blend (0 idle .. 1 run) from ground speed.
+    # Feed the 2D locomotion blend (strafe/backpedal relative to facing) + turn-in-place.
     if _rig != null:
-        _rig.set_locomotion(clampf(Vector2(velocity.x, velocity.z).length() / SPRINT_SPEED, 0.0, 1.0))
+        var lv := global_transform.basis.inverse() * Vector3(velocity.x, 0.0, velocity.z)
+        var local_dir := Vector2(lv.x, -lv.z) / SPRINT_SPEED
+        var turn_amt := 0.0
+        if delta > 0.0:
+            turn_amt = clampf(wrapf(rotation.y - _prev_yaw, -PI, PI) / delta / TURN_FULL_RATE, -1.0, 1.0)
+        _prev_yaw = rotation.y
+        _rig.update_locomotion(local_dir, turn_amt)
 
     if is_attacking() and not _hit_done:
         var a: Dictionary = HEAVY if _attack_type == "heavy" else LIGHT
