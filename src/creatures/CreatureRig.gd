@@ -6,8 +6,8 @@ extends Node3D
 ##
 ## This is the start of the creature-rig track: instead of the static bespoke
 ## meshes in CreatureModels, a species with an entry in _PARAMS gets a real
-## Skeleton3D (Body/Chest/Neck/Head/Rear/Tail + four two-segment legs) with rigid
-## BoneAttachment3D box limbs, plus code-authored clips (idle / walk / run /
+## Skeleton3D (Body/Chest/Neck/Head/Rear/Tail + four two-segment legs) with
+## BoneAttachment3D limbs, plus code-authored clips (idle / walk / run /
 ## attack / hit / death) blended by an AnimationTree state machine. One parametric
 ## skeleton serves every quadruped; per-species proportions (leg length, girth,
 ## neck, head, ears, tail, predator eyes) come from _PARAMS, so Mosslamb reads
@@ -18,18 +18,38 @@ extends Node3D
 ## "Death") from its AI state machine. The body shares Creature's material, so the
 ## existing telegraph (red) and stagger (blue) _glow still tint the rigged body.
 ##
-## Greybox: proportions and gait arcs are first-pass and will refine in playtest;
-## Graphics can later swap the box limbs for sculpted meshes on the same skeleton.
+## Limb shapes (this pass — "more realistic" per Damien, within the low-poly
+## ceiling): tapered/rounded primitives (capsule torso, tapered neck/tail/legs,
+## a rounded head) instead of plain uniform boxes, per this file's own original
+## invitation to "swap the box limbs for sculpted meshes on the same skeleton."
+## Still low radial-segment counts throughout — faceted, not smooth; realism here
+## comes from silhouette/proportion, not polygon budget. Also applies each
+## species' actual docs/ART_DIRECTION.md §8.3 Palette colour + the hide_mottle_64
+## texture (previously these three rendered in the generic TIER_TUNING colour —
+## CreatureRig never set a species tint at all) and fixes the Gloamstalker Lynx's
+## tail, which was parameterized "long" — backwards from the real animal's
+## signature short, stubby tail — and adds its black ear-tufts.
 
 const _AX_X := Vector3(1.0, 0.0, 0.0)   # forward/back swing (legs, pitch)
 const _AX_Y := Vector3(0.0, 1.0, 0.0)   # yaw/twist (tail sway)
 const _AX_Z := Vector3(0.0, 0.0, 1.0)   # roll (death collapse)
 
 # Per-species proportions. legs/torso are metres before body_height scaling.
+# tail: "long" | "short" | "stub" (Lynx-only, real lynx have a notably bobbed tail).
+# ears: "round" | "pointed" | "tufted" (pointed + a small dark ear-tip tuft, Lynx-only).
 const _PARAMS := {
     "mosslamb": {"legs": 0.60, "torso_len": 1.15, "torso_r": 0.36, "neck": 0.20, "head": 0.27, "tail": "short", "ears": "round", "predator": false},
     "ashjackal": {"legs": 0.80, "torso_len": 1.05, "torso_r": 0.22, "neck": 0.26, "head": 0.20, "tail": "long", "ears": "pointed", "predator": true},
-    "gloamstalker_lynx": {"legs": 0.66, "torso_len": 1.28, "torso_r": 0.20, "neck": 0.22, "head": 0.19, "tail": "long", "ears": "pointed", "predator": true},
+    "gloamstalker_lynx": {"legs": 0.66, "torso_len": 1.28, "torso_r": 0.20, "neck": 0.22, "head": 0.19, "tail": "stub", "ears": "tufted", "predator": true},
+}
+
+# Species -> Palette token, matching CreatureModels.gd's already-established look
+# (docs/ART_DIRECTION.md §8.3) so the art direction holds regardless of which
+# body-building system a given creature graduates to.
+const _COLOR := {
+    "mosslamb": "STONE_LIT",
+    "ashjackal": "ASH_GREY",
+    "gloamstalker_lynx": "STONE",
 }
 
 # Set by Creature before add_child.
@@ -47,6 +67,7 @@ static func has_rig(sid: String) -> bool:
     return _PARAMS.has(sid)
 
 func _ready() -> void:
+    _apply_species_look()
     _build_skeleton()
     _build_animations()
     _build_tree()
@@ -64,6 +85,33 @@ func play_state(state: String) -> void:
     if _playback == null:
         return
     _playback.travel(state)
+
+# ------------------------------------------------------------------- look -----
+
+## Tint + texture the shared body material to this species' real, art-directed
+## colour instead of leaving it at whatever generic tier colour Creature.gd
+## initialised it with. Mutating in place (not replacing the resource) so every
+## limb mesh that already holds a reference to this material picks it up, and so
+## Creature._glow()'s emission toggling for the telegraph/stagger tells is
+## completely unaffected (albedo/texture and emission are independent channels).
+func _apply_species_look() -> void:
+    var mat := body_mat as StandardMaterial3D
+    if mat == null:
+        return
+    var token: String = str(_COLOR.get(species_id, ""))
+    match token:
+        "STONE_LIT":
+            mat.albedo_color = Palette.STONE_LIT
+        "ASH_GREY":
+            mat.albedo_color = Palette.ASH_GREY
+        "STONE":
+            mat.albedo_color = Palette.STONE
+    # Real 64x64 mottle texture (assets/textures/hide_mottle_64.svg) instead of a
+    # flat colour — neutral-luminance so it tints correctly by whatever
+    # albedo_color was just set, per the same rule as MaterialLib's other
+    # textured surfaces. FLORA_TILE_SCALE matches similarly small-scale meshes.
+    mat.albedo_texture = MaterialLib._load_tex(MaterialLib.TEX_HIDE)
+    mat.uv1_scale = MaterialLib.FLORA_TILE_SCALE
 
 # ---------------------------------------------------------------- skeleton ----
 
@@ -111,18 +159,28 @@ func _build_skeleton() -> void:
 
     _build_limbs(p, tl, tr, neck, head, half_leg)
 
+## Body/neck/tail/legs as tapered or rounded primitives instead of uniform boxes
+## — see _limb()'s `shape` argument. Proportions/offsets are unchanged from the
+## greybox pass; only the mesh each BoneAttachment3D carries is different.
 func _build_limbs(p: Dictionary, tl: float, tr: float, neck: float, head: float, half_leg: float) -> void:
-    var tail_len: float = (0.6 if str(p["tail"]) == "long" else 0.32) * (maxf(body_height, 0.6) / 1.2)
-    _limb("Body", Vector3(tr * 1.7, tr * 1.5, tl * 0.95), Vector3(0.0, 0.0, 0.0))
-    _limb("Neck", Vector3(tr * 0.75, tr * 0.75, neck * 1.1), Vector3(0.0, 0.0, -neck * 0.5))
-    _limb("Head", Vector3(head * 1.3, head * 1.1, head * 1.5), Vector3(0.0, 0.0, -head * 0.5))
-    _limb("Tail", Vector3(tr * 0.35, tr * 0.35, tail_len), Vector3(0.0, 0.0, tail_len * 0.5))
+    var tail_kind := str(p["tail"])
+    var tail_len: float = (0.6 if tail_kind == "long" else (0.16 if tail_kind == "stub" else 0.32)) * (maxf(body_height, 0.6) / 1.2)
+    _limb("Body", Vector3(tr * 1.7, tr * 1.5, tl * 0.95), Vector3(0.0, 0.0, 0.0), "capsule_z")
+    _limb("Neck", Vector3(tr * 0.75, tr * 0.75, neck * 1.1), Vector3(0.0, 0.0, -neck * 0.5), "taper_z")
+    _limb("Head", Vector3(head * 1.3, head * 1.1, head * 1.5), Vector3(0.0, 0.0, -head * 0.5), "head")
+    _limb("Tail", Vector3(tr * 0.35, tr * 0.35, tail_len), Vector3(0.0, 0.0, tail_len * 0.5), "taper_z")
     for leg in ["LegFL", "LegFR", "LegHL", "LegHR"]:
-        _limb(leg + "_U", Vector3(tr * 0.5, half_leg, tr * 0.5), Vector3(0.0, -half_leg * 0.5, 0.0))
-        _limb(leg + "_L", Vector3(tr * 0.42, half_leg, tr * 0.42), Vector3(0.0, -half_leg * 0.5, 0.0))
+        _limb(leg + "_U", Vector3(tr * 0.5, half_leg, tr * 0.5), Vector3(0.0, -half_leg * 0.5, 0.0), "taper_y")
+        _limb(leg + "_L", Vector3(tr * 0.42, half_leg, tr * 0.42), Vector3(0.0, -half_leg * 0.5, 0.0), "taper_y")
     _build_head_features(p, tr, head)
 
-func _limb(bone: String, box: Vector3, offset: Vector3) -> void:
+## `shape` swaps the primitive family for a more organic silhouette than a plain
+## box, while staying low-poly/faceted (low radial_segments everywhere, no smooth
+## curves): "capsule_z" a horizontal rounded torso, "taper_z" a horizontal
+## tapered cylinder (neck/tail), "taper_y" a vertical tapered cylinder (leg
+## segments), "head" a gently-elongated rounded head. "box" (default) is the
+## original unchanged behaviour, kept for anything not yet worth reshaping.
+func _limb(bone: String, box: Vector3, offset: Vector3, shape: String = "box") -> void:
     if skeleton.find_bone(bone) < 0:
         return
     var att := BoneAttachment3D.new()
@@ -130,9 +188,43 @@ func _limb(bone: String, box: Vector3, offset: Vector3) -> void:
     skeleton.add_child(att)
     att.bone_name = bone
     var mi := MeshInstance3D.new()
-    var bm := BoxMesh.new()
-    bm.size = box
-    mi.mesh = bm
+    match shape:
+        "capsule_z":
+            var cm := CapsuleMesh.new()
+            cm.radius = minf(box.x, box.y) * 0.5
+            cm.height = maxf(box.z, cm.radius * 2.0 + 0.05)
+            cm.radial_segments = 8
+            cm.rings = 2
+            mi.mesh = cm
+            mi.rotation = Vector3(deg_to_rad(90), 0.0, 0.0)
+        "taper_z":
+            var cyl := CylinderMesh.new()
+            cyl.height = box.z
+            cyl.bottom_radius = box.x * 0.5
+            cyl.top_radius = box.x * 0.4
+            cyl.radial_segments = 6
+            mi.mesh = cyl
+            mi.rotation = Vector3(deg_to_rad(90), 0.0, 0.0)
+        "taper_y":
+            var cyl2 := CylinderMesh.new()
+            cyl2.height = box.y
+            cyl2.bottom_radius = box.x * 0.5
+            cyl2.top_radius = box.x * 0.42
+            cyl2.radial_segments = 6
+            mi.mesh = cyl2
+        "head":
+            var sm := SphereMesh.new()
+            var r: float = box.x * 0.5
+            sm.radius = r
+            sm.height = r * 2.0
+            sm.radial_segments = 7
+            sm.rings = 4
+            mi.mesh = sm
+            mi.scale = Vector3(1.0, box.y / box.x, box.z / box.x)
+        _:
+            var bm := BoxMesh.new()
+            bm.size = box
+            mi.mesh = bm
     mi.position = offset
     if body_mat != null:
         mi.material_override = body_mat
@@ -146,12 +238,14 @@ func _build_head_features(p: Dictionary, tr: float, head: float) -> void:
     att.name = "att_HeadFeatures"
     skeleton.add_child(att)
     att.bone_name = "Head"
-    # Ears.
+    # Ears. "tufted" gets the same pointed cone as "pointed", plus a small dark
+    # tip-tuft below — the Lynx's other signature real-animal feature.
     var ears := str(p["ears"])
+    var pointed := ears == "pointed" or ears == "tufted"
     for ex in [-1.0, 1.0]:
         var ear := MeshInstance3D.new()
         var em := CylinderMesh.new()
-        if ears == "pointed":
+        if pointed:
             em.top_radius = 0.0
             em.bottom_radius = head * 0.28
             em.height = head * 0.9
@@ -159,11 +253,28 @@ func _build_head_features(p: Dictionary, tr: float, head: float) -> void:
             em.top_radius = head * 0.22
             em.bottom_radius = head * 0.26
             em.height = head * 0.4
+        em.radial_segments = 6
         ear.mesh = em
-        ear.position = Vector3(ex * head * 0.5, head * 0.7, -head * 0.3)
+        var ear_pos := Vector3(ex * head * 0.5, head * 0.7, -head * 0.3)
+        ear.position = ear_pos
         if body_mat != null:
             ear.material_override = body_mat
         att.add_child(ear)
+        if ears == "tufted":
+            var tuft := MeshInstance3D.new()
+            var tm := CylinderMesh.new()
+            tm.top_radius = 0.0
+            tm.bottom_radius = head * 0.07
+            tm.height = head * 0.3
+            tm.radial_segments = 5
+            tuft.mesh = tm
+            tuft.position = ear_pos + Vector3(0.0, head * 0.48, 0.0)
+            var tuft_mat := StandardMaterial3D.new()
+            tuft_mat.albedo_color = Palette.CHARCOAL_BLACK
+            tuft_mat.roughness = 0.9
+            tuft_mat.metallic = 0.0
+            tuft.material_override = tuft_mat
+            att.add_child(tuft)
     # Predator eye-shine.
     if bool(p["predator"]):
         var emat := StandardMaterial3D.new()
