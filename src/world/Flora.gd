@@ -311,3 +311,61 @@ static func herb_clump(item_id: String) -> Node3D:
         root.add_child(blade)
 
     return root
+
+## --- Mushroom cluster (ground-level decorative) -------------------------------
+
+## A small cluster of tiny glowing mushrooms at ground level — a different
+## scale/register from the landmark-sized Glowcap Pillar-tree, for a bit more
+## visual variety scattered near water/shelter. One shared light for the whole
+## cluster rather than one per cap, so scattering several doesn't stack lights.
+static func mushroom_cluster(glow: Color = Palette.GLOW_FUNGUS, mushroom_count: int = 4) -> Node3D:
+    var root := Node3D.new()
+    root.name = "MushroomCluster"
+
+    var rng := RandomNumberGenerator.new()
+    rng.randomize()
+
+    for i in range(mushroom_count):
+        var mushroom := Node3D.new()
+        var ang := TAU * float(i) / float(mushroom_count) + rng.randf_range(-0.3, 0.3)
+        var r := rng.randf_range(0.0, 0.35)
+        mushroom.position = Vector3(cos(ang) * r, 0.0, sin(ang) * r)
+
+        var scale_f := rng.randf_range(0.6, 1.15)
+        var stem_h := 0.16 * scale_f
+
+        var stem := MeshInstance3D.new()
+        var stm := CylinderMesh.new()
+        stm.top_radius = 0.025 * scale_f
+        stm.bottom_radius = 0.035 * scale_f
+        stm.height = stem_h
+        stm.radial_segments = 5
+        stem.mesh = stm
+        stem.position = Vector3(0, stem_h * 0.5, 0)
+        stem.material_override = MaterialLib.trunk()
+        mushroom.add_child(stem)
+
+        # Faceted, Y-flattened sphere for the cap — the same non-uniform-scale
+        # trick used elsewhere for a squashed/domed silhouette.
+        var cap := MeshInstance3D.new()
+        var cm := SphereMesh.new()
+        cm.radius = 0.11 * scale_f
+        cm.height = 0.14 * scale_f
+        cm.radial_segments = 6
+        cm.rings = 3
+        cap.mesh = cm
+        cap.scale = Vector3(1.0, 0.55, 1.0)
+        cap.position = Vector3(0, stem_h + 0.02, 0)
+        cap.material_override = MaterialLib.glow(glow, 1.6)
+        mushroom.add_child(cap)
+
+        root.add_child(mushroom)
+
+    var light := OmniLight3D.new()
+    light.position = Vector3(0, 0.2, 0)
+    light.light_color = glow
+    light.light_energy = 0.5
+    light.omni_range = 3.5
+    root.add_child(light)
+
+    return root
