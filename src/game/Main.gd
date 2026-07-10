@@ -211,6 +211,31 @@ func _build_floor1() -> void:
         willow.position = p
         add_child(willow)
 
+    # A dockside stilt shelter at the edge of the larger pool, with a hanging
+    # lantern — the one deliberate "warm ember" landmark near water, inspired
+    # by a concept-art reference Damien shared. Static world landmark (like
+    # the ridge or the trees) — NOT the player-buildable tent/den/magic-circle
+    # system from docs/ROADMAP.md's M3 milestone; see src/world/Structures.gd.
+    var shelter := Structures.stilt_shelter(2.4)
+    shelter.position = Vector3(-38, 0, 26)
+    shelter.rotation_degrees.y = 180.0
+    add_child(shelter)
+
+    # A little more mushroom/flora variety at ground level near both pools —
+    # small glowing clusters, a different scale/register from the Glowcap
+    # Pillar-trees, cycling the cold-bioluminescence family.
+    var cluster_specs := [
+        [Vector3(-58, 0, 50), Palette.GLOW_TEAL],
+        [Vector3(-48, 0, 14), Palette.GLOW_VIOLET],
+        [Vector3(-34, 0, 30), Palette.GLOW_BLUE],
+        [Vector3(24, 0, -20), Palette.GLOW_FUNGUS],
+        [Vector3(56, 0, -30), Palette.GLOW_TEAL],
+    ]
+    for spec in cluster_specs:
+        var cluster := Flora.mushroom_cluster(spec[1])
+        cluster.position = spec[0]
+        add_child(cluster)
+
     # A rocky ridge along the east wall — a landmark to navigate by.
     for i in range(8):
         var rz := -52.0 + float(i) * 13.0
