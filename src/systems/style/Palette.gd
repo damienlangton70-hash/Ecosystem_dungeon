@@ -55,6 +55,11 @@ const INGREDIENT := {
     "marrowmint": Color(0.35, 0.72, 0.68),       # mint teal-green, kin to GLOW_TEAL
 }
 
+# --- Creature accents ---
+const ASH_GREY := Color(0.29, 0.29, 0.31)       ## Sooty pack-canid coat — Ashjackal's base fur tone.
+const AMBER_EYESHINE := Color(0.95, 0.65, 0.24) ## Small predator eye-glow tell — not a light source, just a "watching you" read.
+const CHARCOAL_BLACK := Color(0.067, 0.063, 0.075) ## Near-black creature hide/fur — warmer/less-blue than STONE_DARK so silhouettes don't fuse with cavern shadow.
+
 ## Accent colour for a forageable/ingredient id, with a sensible fallback.
 static func ingredient_color(id: String, fallback := Color(0.7, 0.7, 0.6)) -> Color:
     return INGREDIENT.get(id, fallback)
