@@ -426,44 +426,49 @@ though its base tier-glow family doesn't change.
 
 ### 8.3 — Creature art requirements (30 species, grouped by tier)
 
-**Honest baseline, as of this writing: nothing in Deepforage has a bespoke creature
-mesh.** `src/creatures/Creature.gd` builds one generic quadruped rig (capsule torso,
-four cylinder legs, sphere head, cone/cylinder ears, cylinder tail) for every species;
-the only per-creature differentiation is `body_color` and `body_height`, both driven by
-tier lookup in `Main.gd`'s `TIER_TUNING`, plus combat stats. Exactly three species are
-currently spawned in-game at all — Mosslamb, Ashjackal, Gloamstalker Lynx — and all
-three use that same rig. "Placeholder capsule, needs real silhouette" below means
-exactly that: the creature exists as a gameplay entity with correct stats and colour,
-but has zero bespoke geometry. The other 27 species are fully documented in Lore but
-have no code presence (not spawned, no mesh, no dedicated stats) yet.
+**Status as of this sync pass (2026-07-10, per D11 — keep this doc synced to reality):**
+Mosslamb, Ashjackal, and Gloamstalker Lynx now build a real animated `CreatureRig`
+(Skeleton3D + AnimationTree — tapered/rounded limb primitives, correct Palette colour,
+hide texture) instead of a static placeholder; see "Done recently" in `docs/ROADMAP.md`.
+The full Floor-1 roster from `data/lore.json` (10 species) is now spawned in-game — the 7
+without a bespoke `CreatureModels`/`CreatureRig` entry (Grotto Springhare, Blind Vole,
+Deep Quail, Gloomferret, Rockback Boar, Spinefowl, Cinder Cockatril) render via
+`Creature.gd`'s generic form-driven rig: correct stats/colour and predator-vs-prey
+silhouette cues (ear shape, eye-glow) apply, but no bespoke per-species shape yet. The
+other 20 species remain fully documented in Lore with no code presence at all.
+**Token caveat:** of §8.1's 12 proposed new tokens, only `ASH_GREY`, `AMBER_EYESHINE`,
+and `CHARCOAL_BLACK` actually exist in `Palette.gd` today — every other token named in
+the tables below (`BONE`, `RIDGE_BROWN`, `RUST_DUN`, `EMBER_VEIN`, `MARROW_YELLOW`,
+`TOXIN_GREEN`, `TOXIN_TEAL_GLOW`, `FROST_HIDE`, `SWAMP_MUD`) is still a proposal, not
+real code — check `Palette.gd` before assuming a token exists.
 
 #### Tier 1 — Grazers & Foragers
 
 | Creature | Tier | Silhouette identity | Palette tokens | Status |
 |---|---|---|---|---|
-| Mosslamb | 1 | Barrel-bodied quadruped, stacked rounded boulders, mossy felted coat | `STONE_LIT`/`STONE` (chalky grey-green base), `GLOW_TEAL` (dim, back-lichen fleck) | **Placeholder capsule** — generic rig + tier colour only, no real silhouette |
-| Grotto Springhare | 1 | Long-legged, big-eared, coiled-spring haunches | `STONE_LIT` (pale limestone fading to cream belly), `CHARCOAL_BLACK` (ink ear-tips), `AMBER_EYESHINE` (bright, non-predator exception) | Not yet built |
-| Capglow Snail | 1 | Slow broad foot beneath a spiral glowing shell | `STONE` (basalt-grey foot), `GLOW_TEAL`/`GLOW_VIOLET` (shell ridge glow) | Not yet built |
-| Blind Vole | 1 | Small featureless ovoid, stub limbs, no eyes, blunt snout — deliberately the least interesting silhouette | `BONE`-tinted dull pink-grey (custom low-saturation mix), `GROUND` (dirt-brown mottling) | Not yet built |
-| Palefish | 1 | Slim translucent-pale fish, schooling | `BONE`/near-white base, `GLOW_VIOLET` (undertone from internal organs) | Not yet built |
-| Deep Quail | 1 | Plump ground bird, stubby legs, stiff fan tail | `ASH_GREY`/`RIDGE_BROWN` (mottled slate-and-rust plumage bands) | Not yet built |
+| Mosslamb | 1 | Barrel-bodied quadruped, stacked rounded boulders, mossy felted coat | `STONE_LIT`/`STONE` (chalky grey-green base), `GLOW_TEAL` (dim, back-lichen fleck) | **Built — animated CreatureRig** (tapered capsule torso/limbs, correct `STONE_LIT` tint + hide texture; lichen-fleck accent not yet ported) |
+| Grotto Springhare | 1 | Long-legged, big-eared, coiled-spring haunches | `STONE_LIT` (pale limestone fading to cream belly), `CHARCOAL_BLACK` (ink ear-tips), `AMBER_EYESHINE` (bright, non-predator exception) | Spawned — generic rig (real stats/colour, no bespoke silhouette yet) |
+| Capglow Snail | 1 | Slow broad foot beneath a spiral glowing shell | `STONE` (basalt-grey foot), `GLOW_TEAL`/`GLOW_VIOLET` (shell ridge glow) | Not yet built (not spawned) |
+| Blind Vole | 1 | Small featureless ovoid, stub limbs, no eyes, blunt snout — deliberately the least interesting silhouette | `BONE`-tinted dull pink-grey (custom low-saturation mix, proposal — not real yet), `GROUND` (dirt-brown mottling) | Spawned — generic rig (real stats/colour, no bespoke silhouette yet) |
+| Palefish | 1 | Slim translucent-pale fish, schooling | `BONE`/near-white base (proposal — not real yet), `GLOW_VIOLET` (undertone from internal organs) | Not yet built (not spawned) |
+| Deep Quail | 1 | Plump ground bird, stubby legs, stiff fan tail | `ASH_GREY`/`RIDGE_BROWN` (mottled slate-and-rust plumage bands; `RIDGE_BROWN` still a proposal) | Spawned — generic rig (real stats/colour, no bespoke silhouette yet) |
 
 #### Tier 2 — Small Hunters & Omnivores
 
 | Creature | Tier | Silhouette identity | Palette tokens | Status |
 |---|---|---|---|---|
-| Gloomferret | 2 | Long, low, sinuous — elongated torso, whip-thin tail | `CHARCOAL_BLACK` (fur), `GLOW_VIOLET` (single dull spine-to-tail stripe) | Not yet built |
-| Ashjackal | 2 | Lean, angular canid — sharp shoulder ridges, alert triangular ears | `ASH_GREY` (sooty-smudged coat), `AMBER_EYESHINE` (small eye-glow, not full bioluminescence) | **Placeholder capsule** — generic rig + tier colour only, no real silhouette |
-| Rockback Boar | 2 | Squat, heavy-shouldered, hexagonal-plated back armour | `RUST_DUN` (warm brown-black hide), `RIDGE`/`STONE_LIT` (slate plating), `EMBER` (firelit tusk highlight) | Not yet built |
-| Spinefowl | 2 | Tall gawky ground bird, stiff angular quill-spine ridge down the back | `RIDGE_BROWN` (dull rust-brown body), `BONE` (pale spine-ridge, the danger tell) | Not yet built |
-| Grave Otter | 2 | Sleek elongated otter, low-slung, fast in water | `CHARCOAL_BLACK` (wet-look hide), `BONE`/pale grey-white (face patch), `GLOW_VIOLET` (whisker/eye-patch rim glow) | Not yet built |
-| Cinder Cockatril | 2 | Compact upright bird-reptile hybrid, cockerel posture, low crest | `ASH_GREY` (base crest), `EMBER`/`EMBER_VEIN` (crest shifting to smouldering orange-red — the toxicity tell) | Not yet built |
+| Gloomferret | 2 | Long, low, sinuous — elongated torso, whip-thin tail | `CHARCOAL_BLACK` (fur), `GLOW_VIOLET` (single dull spine-to-tail stripe) | Spawned — generic rig (real stats/colour, no bespoke silhouette yet) |
+| Ashjackal | 2 | Lean, angular canid — sharp shoulder ridges, alert triangular ears | `ASH_GREY` (sooty-smudged coat), `AMBER_EYESHINE` (small eye-glow, not full bioluminescence) | **Built — animated CreatureRig** (tapered limbs, correct `ASH_GREY` tint + hide texture, small amber eye-glow) |
+| Rockback Boar | 2 | Squat, heavy-shouldered, hexagonal-plated back armour | `RUST_DUN` (warm brown-black hide, still a proposal), `RIDGE`/`STONE_LIT` (slate plating), `EMBER` (firelit tusk highlight) | Spawned — generic rig (real stats/colour, no bespoke silhouette yet) |
+| Spinefowl | 2 | Tall gawky ground bird, stiff angular quill-spine ridge down the back | `RIDGE_BROWN` (dull rust-brown body, still a proposal), `BONE` (pale spine-ridge, still a proposal) | Spawned — generic rig (real stats/colour, no bespoke silhouette yet) |
+| Grave Otter | 2 | Sleek elongated otter, low-slung, fast in water | `CHARCOAL_BLACK` (wet-look hide), `BONE`/pale grey-white (face patch, still a proposal), `GLOW_VIOLET` (whisker/eye-patch rim glow) | Not yet built (not spawned) |
+| Cinder Cockatril | 2 | Compact upright bird-reptile hybrid, cockerel posture, low crest | `ASH_GREY` (base crest), `EMBER`/`EMBER_VEIN` (crest shifting to smouldering orange-red — the toxicity tell; `EMBER_VEIN` still a proposal) | Spawned — generic rig (real stats/colour, no bespoke silhouette yet) |
 
 #### Tier 3 — Mid Predators
 
 | Creature | Tier | Silhouette identity | Palette tokens | Status |
 |---|---|---|---|---|
-| Gloamstalker Lynx | 3 | Lean long-limbed big cat, low stalking posture, flattened haunches | `STONE` (mottled dark stone-grey), `CHARCOAL_BLACK` (near-black patches), `GLOW_TEAL` (faint cold flecks along ruff) | **Placeholder capsule** — generic rig + tier colour only, no real silhouette |
+| Gloamstalker Lynx | 3 | Lean long-limbed big cat, low stalking posture, flattened haunches | `STONE` (mottled dark stone-grey), `CHARCOAL_BLACK` (near-black patches), `GLOW_TEAL` (faint cold flecks along ruff) | **Built — animated CreatureRig** (tapered limbs, correct `STONE` tint + hide texture, real stub tail + ear tufts; charcoal patches/teal ruff-flecks not yet ported) |
 | Hookbeak Ridgehawk | 3 | Broad-winged raptor, exaggerated hooked beak, stiff angular wings | `RIDGE_BROWN` (dusty ridge-brown plumage), `BONE` (pale cream chest), `AMBER_EYESHINE` (hunting-stare glow) | Not yet built |
 | Marrow Hyena | 3 | Hunched, powerful-jawed canid, dropped-hindquarter stance | `BONE` + `MARROW_YELLOW` (bone-white/marrow-yellow blotching), `RUST_DUN` (dull grey-brown base coat) | Not yet built |
 | Bog Saurian | 3 | Low wide-bodied reptile, most bulk submerged, ridged spine breaking the surface | `SWAMP_MUD` (mottled swamp-green/mud-brown scales), `TOXIN_TEAL_GLOW` (sickly tail glow-stripe, the warning) | Not yet built |
