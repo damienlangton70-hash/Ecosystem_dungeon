@@ -53,6 +53,7 @@ var _body_mat: StandardMaterial3D
 var _sfx: AudioStreamPlayer3D
 var _flinch_tween: Tween
 var _death_started := false
+var _rig: CreatureRig
 
 func _ready() -> void:
     health = max_health
@@ -71,6 +72,21 @@ func _build_body() -> void:
     _body_mat.rim_enabled = true
     _body_mat.rim = 0.5
     _body_mat.rim_tint = 0.3
+
+    # Skeletal-rig track: species with a CreatureRig get a true Skeleton3D +
+    # AnimationTree body (walk/run/attack/hit/death), driven from the AI state
+    # machine below. Shares _body_mat so the telegraph/stagger _glow still tints it.
+    if CreatureRig.has_rig(species_id):
+        _rig = CreatureRig.new()
+        _rig.species_id = species_id
+        _rig.body_mat = _body_mat
+        _rig.body_height = body_height
+        add_child(_rig)
+        _add_creature_collision()
+        _sfx = AudioStreamPlayer3D.new()
+        _sfx.unit_size = 6.0
+        add_child(_sfx)
+        return
 
     # Bespoke per-species silhouette (docs/ART_DIRECTION.md §8.3) takes precedence
     # over the form-driven generic rig below. CreatureModels overrides _body_mat's
@@ -223,6 +239,15 @@ func _build_body() -> void:
     _sfx.unit_size = 6.0
     add_child(_sfx)
 
+func _add_creature_collision() -> void:
+    var col := CollisionShape3D.new()
+    var box := BoxShape3D.new()
+    var h := maxf(body_height, 0.6)
+    box.size = Vector3(0.7, h, 1.2)
+    col.shape = box
+    col.position = Vector3(0, h * 0.5, 0)
+    add_child(col)
+
 func _glow(color: Color, on: bool) -> void:
     if _body_mat == null:
         return
@@ -244,6 +269,11 @@ func _physics_process(delta: float) -> void:
     _attack_cd = maxf(_attack_cd - delta, 0.0)
     if poise < max_poise:
         poise = minf(max_poise, poise + POISE_REGEN * delta)
+
+    if _rig != null:
+        var sp := Vector2(velocity.x, velocity.z).length()
+        var maxsp: float = maxf(move_speed * maxf(chase_speed_mult, 1.0), 0.1)
+        _rig.set_locomotion(clampf(sp / maxsp, 0.0, 1.0))
 
     # Staggered: can't act, slides to a stop, recovers.
     if state == State.STAGGER:
@@ -320,6 +350,8 @@ func _physics_process(delta: float) -> void:
                 _committing = true
                 _windup = WINDUP_TIME
                 _glow(Color(1.0, 0.25, 0.15), true)  # red wind-up tell (D6)
+                if _rig != null:
+                    _rig.play_state("Attack")
                 if _sfx != null:
                     _sfx.stream = Audio.get_stream("growl")
                     _sfx.play()
@@ -384,6 +416,9 @@ func _flinch() -> void:
         kb.y = 0.0
         if kb.length() > 0.1:
             velocity += kb.normalized() * FLINCH_KNOCKBACK
+    if _rig != null:
+        _rig.play_state("Hit")
+        return
     if _flinch_tween != null and _flinch_tween.is_valid():
         _flinch_tween.kill()
     rotation.x = 0.0
@@ -408,6 +443,8 @@ func _enter_stagger() -> void:
         _flinch_tween.kill()
     rotation.x = 0.0
     _glow(Color(0.5, 0.7, 1.0), true)  # blue-white stagger flash
+    if _rig != null:
+        _rig.play_state("Hit")
     if _player != null and is_instance_valid(_player):
         var kb := global_position - _player.global_position
         kb.y = 0.0
@@ -428,7 +465,14 @@ func _die() -> void:
     if _ecosystem != null and _ecosystem.has_method("record_kill"):
         _ecosystem.record_kill(species_id, 1)
     _drop_meat()
-    # Topple + sink, then remove — a death beat instead of a pop-out.
+    if _rig != null:
+        # The rig plays a collapse clip; free the node once it finishes.
+        _rig.play_state("Death")
+        var dt := create_tween()
+        dt.tween_interval(0.9)
+        dt.tween_callback(queue_free)
+        return
+    # Non-rigged: topple + sink, then remove — a death beat instead of a pop-out.
     var fall := 1.0 if randf() < 0.5 else -1.0
     var t := create_tween()
     t.tween_property(self, "rotation:z", fall * (PI * 0.5), 0.55)
