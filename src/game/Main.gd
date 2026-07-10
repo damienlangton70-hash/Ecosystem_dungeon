@@ -88,7 +88,11 @@ func _build_ecosystem() -> void:
     _ecosystem.name = "Ecosystem"
     add_child(_ecosystem)
     _ecosystem.add_to_group("ecosystem")
-    for id in ["mosslamb", "ashjackal", "gloamstalker_lynx"]:
+    # D16-S2: the full Floor-1 roster per data/lore.json, not just the 3 that
+    # happen to have bespoke bodies/rigs yet — the other 7 use the generic
+    # form-driven rig below until they're rigged (see docs/ROADMAP.md).
+    for id in ["mosslamb", "grotto_springhare", "blind_vole", "deep_quail", "gloomferret",
+               "ashjackal", "rockback_boar", "spinefowl", "cinder_cockatril", "gloamstalker_lynx"]:
         _register_from_lore(id, 1)
 
 ## Register a species in the ecosystem using stats from the Lore layer (lore.json).
@@ -257,13 +261,43 @@ func _spawn_player() -> void:
     _player.position = Vector3(0, 2, 82)
     add_child(_player)
 
+## D16-S2: populate the FULL Floor-1 roster from data/lore.json (was just 3 of
+## the 10 species listed for this floor). Prey common, small hunters rarer,
+## Lynx guarding the descent — same "believable numbers across the space"
+## shape the original 3 already followed, just extended to the rest of the
+## roster. None of the 7 new species have a bespoke CreatureModels/CreatureRig
+## body yet, so they render via Creature.gd's generic form-driven rig — the
+## same safe, already-proven fallback Mosslamb/Ashjackal used before they were
+## rigged (colour + predator/prey silhouette cues still apply via body_color/
+## is_predator, just not a bespoke shape yet).
 func _spawn_creatures() -> void:
+    # --- Tier 1 grazers (common prey) ---
     for p in [Vector3(-15, 1, 52), Vector3(12, 1, 44), Vector3(-6, 1, 30), Vector3(24, 1, 24),
               Vector3(-30, 1, 12), Vector3(34, 1, 18), Vector3(4, 1, -6), Vector3(-20, 1, -22)]:
         _spawn_from_lore("mosslamb", p)
+    for p in [Vector3(-60, 1, 58), Vector3(-40, 1, 66), Vector3(10, 1, 70),
+              Vector3(40, 1, 50), Vector3(60, 1, 20), Vector3(-16, 1, -8)]:
+        _spawn_from_lore("grotto_springhare", p)
+    for p in [Vector3(-70, 1, 44), Vector3(-24, 1, 60), Vector3(30, 1, 64),
+              Vector3(55, 1, 42), Vector3(-40, 1, -4), Vector3(50, 1, 8)]:
+        _spawn_from_lore("blind_vole", p)
+    for p in [Vector3(-50, 1, 70), Vector3(-4, 1, 58), Vector3(26, 1, 74),
+              Vector3(64, 1, 56), Vector3(-64, 1, -6), Vector3(16, 1, 14)]:
+        _spawn_from_lore("deep_quail", p)
+
+    # --- Tier 2 small hunters (rarer) ---
     for p in [Vector3(-46, 1, -34), Vector3(46, 1, -38), Vector3(0, 1, -48), Vector3(-54, 1, 38)]:
         _spawn_from_lore("ashjackal", p)
-    # Tier-3 ambush stalkers guarding the descent.
+    for p in [Vector3(-34, 1, 26), Vector3(46, 1, 40), Vector3(-56, 1, -30)]:
+        _spawn_from_lore("gloomferret", p)
+    for p in [Vector3(20, 1, 46), Vector3(-66, 1, 4), Vector3(58, 1, -18)]:
+        _spawn_from_lore("rockback_boar", p)
+    for p in [Vector3(-14, 1, 44), Vector3(38, 1, -2), Vector3(-44, 1, -40)]:
+        _spawn_from_lore("spinefowl", p)
+    for p in [Vector3(8, 1, 20), Vector3(-70, 1, -26), Vector3(48, 1, -48)]:
+        _spawn_from_lore("cinder_cockatril", p)
+
+    # --- Tier 3 ambush stalkers guarding the descent ---
     _spawn_from_lore("gloamstalker_lynx", Vector3(-8, 1, -50))
     _spawn_from_lore("gloamstalker_lynx", Vector3(12, 1, -46))
 
