@@ -55,7 +55,7 @@ const _AXIS_Z := Vector3(0.0, 0.0, 1.0)   # roll — hang the arms down / strafe
 # Locomotion thresholds (normalised units; local_dir is velocity / SPRINT_SPEED).
 const MOVE_DEADZONE := 0.12   # below this speed the delver is "standing"
 const TURN_DEADZONE := 0.18   # below this |turn| there's no turn-in-place
-const ONE_SHOTS := ["Roll", "AttackLight", "AttackHeavy", "Hit"]
+const ONE_SHOTS := ["Roll", "AttackLight1", "AttackLight2", "AttackLight3", "AttackHeavy", "Hit"]
 
 var skeleton: Skeleton3D
 var anim_player: AnimationPlayer
@@ -121,6 +121,11 @@ func play_state(state: String) -> void:
     if _playback == null:
         return
     _playback.travel(state)
+
+## Freeze/unfreeze the whole rig — used for a brief hitstop when a blow lands.
+func set_frozen(frozen: bool) -> void:
+    if anim_tree != null:
+        anim_tree.active = not frozen
 
 ## The right-hand BoneAttachment — Player.gd parents the weapon here so the sword
 ## follows the arm animation instead of floating in front of the body.
@@ -203,7 +208,9 @@ func _build_animations() -> void:
     lib.add_animation("turn_left", _make_turn(-1.0))
     lib.add_animation("turn_right", _make_turn(1.0))
     lib.add_animation("roll", _make_roll())
-    lib.add_animation("attack_light", _make_attack_light())
+    lib.add_animation("attack_light1", _make_attack_light1())
+    lib.add_animation("attack_light2", _make_attack_light2())
+    lib.add_animation("attack_light3", _make_attack_light3())
     lib.add_animation("attack_heavy", _make_attack_heavy())
     lib.add_animation("hit", _make_hit())
     anim_player.add_animation_library("", lib)
@@ -334,14 +341,34 @@ func _make_roll() -> Animation:
     _rot(a, "Chest", [[0.0, _swing(0.0)], [0.225, _swing(0.8)], [0.45, _swing(0.0)]])
     return a
 
-func _make_attack_light() -> Animation:
-    # Matches LIGHT.time (0.40); blade lands ~LIGHT.hit (0.12). A fast diagonal chop.
+func _make_attack_light1() -> Animation:
+    # Combo 1 — fast diagonal chop, right-to-left. len 0.38; blade lands ~0.12.
     var a := Animation.new()
-    a.length = 0.40
+    a.length = 0.38
     a.loop_mode = Animation.LOOP_NONE
-    _rot(a, "UpperArm_R", [[0.0, _arm_r(-0.7)], [0.12, _arm_r(1.5)], [0.24, _arm_r(1.2)], [0.40, _arm_r(0.1)]])
-    _rot(a, "LowerArm_R", [[0.0, _swing(-0.3)], [0.12, _swing(0.2)], [0.40, _swing(0.0)]])
-    _rot(a, "Chest", [[0.0, Quaternion(_AXIS_Y, 0.35)], [0.12, Quaternion(_AXIS_Y, -0.35)], [0.40, Quaternion(_AXIS_Y, 0.0)]])
+    _rot(a, "UpperArm_R", [[0.0, _arm_r(-0.7)], [0.12, _arm_r(1.5)], [0.24, _arm_r(1.2)], [0.38, _arm_r(0.1)]])
+    _rot(a, "LowerArm_R", [[0.0, _swing(-0.3)], [0.12, _swing(0.2)], [0.38, _swing(0.0)]])
+    _rot(a, "Chest", [[0.0, Quaternion(_AXIS_Y, 0.35)], [0.12, Quaternion(_AXIS_Y, -0.35)], [0.38, Quaternion(_AXIS_Y, 0.0)]])
+    return a
+
+func _make_attack_light2() -> Animation:
+    # Combo 2 — backhand return, left-to-right. len 0.42; blade lands ~0.14.
+    var a := Animation.new()
+    a.length = 0.42
+    a.loop_mode = Animation.LOOP_NONE
+    _rot(a, "UpperArm_R", [[0.0, _arm_r(1.2)], [0.14, _arm_r(-0.8)], [0.28, _arm_r(0.2)], [0.42, _arm_r(0.1)]])
+    _rot(a, "LowerArm_R", [[0.0, _swing(0.2)], [0.14, _swing(-0.2)], [0.42, _swing(0.0)]])
+    _rot(a, "Chest", [[0.0, Quaternion(_AXIS_Y, -0.35)], [0.14, Quaternion(_AXIS_Y, 0.35)], [0.42, Quaternion(_AXIS_Y, 0.0)]])
+    return a
+
+func _make_attack_light3() -> Animation:
+    # Combo 3 — overhead finisher. len 0.58; blade lands ~0.24.
+    var a := Animation.new()
+    a.length = 0.58
+    a.loop_mode = Animation.LOOP_NONE
+    _rot(a, "UpperArm_R", [[0.0, _arm_r(0.0)], [0.22, _arm_r(-1.7)], [0.30, _arm_r(1.6)], [0.44, _arm_r(1.2)], [0.58, _arm_r(0.0)]])
+    _rot(a, "Chest", [[0.0, _swing(0.0)], [0.22, _swing(-0.2)], [0.30, _swing(0.45)], [0.58, _swing(0.0)]])
+    _rot(a, "UpperLeg_L", [[0.0, _swing(0.0)], [0.30, _swing(-0.25)], [0.58, _swing(0.0)]])
     return a
 
 func _make_attack_heavy() -> Animation:
@@ -391,7 +418,9 @@ func _build_tree() -> void:
     sm.add_node("Move", move, Vector2(300, 160))
     sm.add_node("Turn", turn, Vector2(300, 300))
     sm.add_node("Roll", _anim_node("roll"), Vector2(560, 40))
-    sm.add_node("AttackLight", _anim_node("attack_light"), Vector2(560, 130))
+    sm.add_node("AttackLight1", _anim_node("attack_light1"), Vector2(560, 100))
+    sm.add_node("AttackLight2", _anim_node("attack_light2"), Vector2(560, 150))
+    sm.add_node("AttackLight3", _anim_node("attack_light3"), Vector2(760, 130))
     sm.add_node("AttackHeavy", _anim_node("attack_heavy"), Vector2(560, 220))
     sm.add_node("Hit", _anim_node("hit"), Vector2(560, 310))
 
@@ -407,7 +436,7 @@ func _build_tree() -> void:
         _trans(sm, "Turn", s, false, false)
         _trans(sm, s, "Move", true, true)
     # A dodge can cancel an attack or a flinch (i-frames are the main defence).
-    for s in ["AttackLight", "AttackHeavy", "Hit"]:
+    for s in ["AttackLight1", "AttackLight2", "AttackLight3", "AttackHeavy", "Hit"]:
         _trans(sm, s, "Roll", false, false)
 
     anim_tree = AnimationTree.new()
