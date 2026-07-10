@@ -45,7 +45,7 @@ echo "== Cooking-loop self-test =="
 "$GODOT" --headless --path "$PROJECT_DIR" res://tools/SelfTest.tscn 2>&1 | tee /tmp/df_selftest.log
 
 NOISE='Parameter "m" is null|mesh_get_surface_count'
-PATTERN='SCRIPT ERROR|Parse Error|Failed to load|Invalid call|Invalid access|Invalid get index|Cannot infer|Nonexistent function'
+PATTERN='SCRIPT ERROR|Parse Error|Failed to load|Invalid call|Invalid access|Invalid get index|Cannot infer|Nonexistent function|hides a global script class|Duplicate .*class'
 
 if grep -E "$PATTERN" /tmp/df_import.log /tmp/df_run.log /tmp/df_selftest.log | grep -vE "$NOISE"; then
   echo "VALIDATION FAILED: real script/runtime errors above."
