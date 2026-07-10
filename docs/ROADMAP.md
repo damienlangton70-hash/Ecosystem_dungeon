@@ -92,14 +92,14 @@ below is backed by concrete spec + loadable data, so implementation isn't blocke
 
 **★ Owner priority (2026-07-10) — Combat / animation track.** Damien asked to make combat
 Souls-like and to work on animations; the approved plan sequences the build starting with the core.
-Increments 1 (rig + AnimationTree) and 2/A1 (2D locomotion + turn-in-place) have shipped —
-**A2 is now the lead item**:
+Increments 1 (rig + AnimationTree), 2/A1 (2D locomotion + turn-in-place) and 2/A2 (attack
+game-feel) have shipped — **A3 is now the lead item**:
 
 - **A1 — Directional locomotion: ✅ SHIPPED (2026-07-10).** 2D `BlendSpace2D` (strafe/backpedal,
   walk→run) + a turn-in-place state, driven by `PlayerRig.update_locomotion()`.
-- **A2 — Attack game-feel (NEXT):** light/heavy combo strings with recovery-cancel windows;
-  land-on-hit feedback (brief hitstop + a slash VFX) so blows feel like they connect.
-- **A3 — Defence + reactions:** player poise/stagger and a parry; extend the same rig approach to
+- **A2 — Attack game-feel: ✅ SHIPPED (2026-07-10).** 3-hit light combo chain with recovery-cancel
+  windows + input buffering, hitstop on connect, and slash/impact VFX (`src/systems/combat/CombatFX.gd`).
+- **A3 — Defence + reactions (NEXT):** player poise/stagger and a parry; extend the same rig approach to
   creature **hit-react + death** animations (dovetails with the Ashjackal tell D6 and pack rule D5).
 - **A4 — Death & recovery loop:** a Souls-style "rest point" at campfires / magic circles + a
   drop-and-recover-on-death resource (coin an ORIGINAL name — not "souls"; IP-check per DECISIONS).
@@ -126,6 +126,14 @@ Then the broader backlog:
    (biped hopper — a good first test of the new `biped` rig path) or Rockback Boar.
 
 ## Done recently
+- **Combat / animation — A2: attack game-feel (Increment 2, owner-directed):** attacks now feel
+  like they connect. A **3-hit light combo chain** (`attack_light1/2/3` in `PlayerRig`) with
+  **recovery-cancel windows + input buffering** (`_can_cancel_attack` / `_tick_attack` in
+  `Player.gd`), a **hitstop** freeze-frame on connect (`PlayerRig.set_frozen` toggling
+  `AnimationTree.active`), and **slash + impact VFX** from a new self-fading
+  `src/systems/combat/CombatFX.gd`. Attacks are data-driven (`LIGHT_CHAIN` + `HEAVY`); dodging or
+  taking a hit breaks the combo. Numbers provisional (playtest). Greybox; Godot 4.3 API,
+  editor/CI authoritative. Commits `f53af06`, `0b70828`, `f8838a8`.
 - **Combat / animation — A1: 2D locomotion + turn-in-place (Increment 2, owner-directed):**
   `PlayerRig`'s Move state upgraded from a 1D speed blend to a **`BlendSpace2D`** keyed on local
   velocity (strafe/backpedal, walk→run), plus a new **Turn** state for turn-in-place. Five new
