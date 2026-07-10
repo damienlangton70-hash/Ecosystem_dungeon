@@ -86,6 +86,26 @@ The first genuinely fun 10 minutes.
 
 ## Next up (for the very next run)
 
+**⚠ Sync note (2026-07-10 pm):** `docs/DECISIONS.md` **D16** (decided today) makes completing
+Floor 1 in full — sections S1–S5 — the current TOP PRIORITY, ahead of the combat/animation A4 item
+and creature-rig polish below. This list hasn't been fully re-sequenced around D16 yet; treat
+DECISIONS.md as authoritative on ordering. Status as of this run: **S1 (scale/enclosure) and S3
+(groves/water/ridge/flora) already look substantially shipped** in the current `Main.gd` — a big
+160×150 fully-enclosed cavern, 12 glowcaps, 4 ironbarks, 2 water pools, 3 palewillows, an 8-piece
+rock ridge, 36 cover rocks, 22 glow spots, 24 forageables. **S2 (populate) is the concrete gap:**
+only mosslamb/ashjackal/gloamstalker_lynx spawn today — the other 7 species D16 names for Floor 1
+(Grotto Springhare, Blind Vole, Deep Quail, Gloomferret, Rockback Boar, Spinefowl, Cinder Cockatril)
+are not spawned anywhere yet, despite full stats being ready in `data/lore.json`/`combat.json`.
+**This is the single most concrete next-up item.** S4/S5 status unverified this run.
+
+**Also image-inspired (companion to S3, not yet done):** Damien shared a concept-art reference
+(painterly isometric dungeon scene) and asked to "match the look." Rather than chase photoreal
+rendering (against house style — stylized low-poly stays canon), this run shipped a **real styled
+HUD** (see below) and flagged two more low-poly-appropriate, honest translations of the reference
+for a future run: an elevated stilt shelter + hanging lantern prop near one of the two water pools,
+and 1–2 more mushroom/flora silhouette variants for visual density — both natural S3-richness
+extensions, not new systems.
+
 The Lore team has now shipped the full design layer **ahead of production** (`docs/BESTIARY.md`,
 `docs/CREATURE_BEHAVIOUR.md`, `docs/RECIPES.md`, `docs/ITEMS.md`, `data/lore.json`) — every item
 below is backed by concrete spec + loadable data, so implementation isn't blocked on design.
@@ -130,6 +150,23 @@ Then the broader backlog:
    (biped hopper — a good first test of the new `biped` rig path) or Rockback Boar.
 
 ## Done recently
+- **UI: real styled HUD (owner-directed — "push the game look to match the image"):** replaced
+  the placeholder plain-`Label`/flat-`ColorRect` HUD with a real presentation layer, new
+  `src/systems/ui/HUD.gd` (`class_name HUD extends CanvasLayer`, owns all HUD nodes + its own
+  `_process()`, `Main.gd` just constructs + `bind()`s it). Rounded `StyleBoxFlat` panel chrome
+  (coloured top accent edge, zero image assets), a `SystemFont` monospace look (named system font
+  fallback list, zero font files committed), and colour-swatch "icons" — all built from Godot's
+  vector/procedural UI primitives, no binary assets. Translates a concept-art reference's
+  information design (icon-coded vitals bars, hotbar-style item chips, badge-style keybind legend,
+  minimap-corner status panel) into Deepforage's real systems and Palette tokens: HP (`WARN`) / STA
+  (`GLOW_TEAL`) / HUNGER (`FLAME`) bars, lock-on + buff-pill + status-text cluster, 4 honest resource
+  chips (raw meat/meals/fruit/herbs — the real inventory, no fabricated items), a 3-column controls
+  legend covering every real binding, and a depth/hostility/creature-count readout in the screen
+  corner the reference reserves for a minimap (we have no level-layout data, so this is the honest
+  equivalent, not a fake map). Deliberately does **not** attempt photoreal rendering (against house
+  style) and does **not** fabricate cold/wet/tired meters or a quest log (those systems don't exist
+  yet — M3 not built). Zero gameplay-logic touched; SelfTest unaffected. Godot 4.3 API, validated
+  headless green. Commits `c12da01`, `4127d77`.
 - **Creature skeletal-rig track — STARTED (owner-directed):** new `src/creatures/CreatureRig.gd` —
   a parametric **quadruped** Skeleton3D + `AnimationTree` (idle/walk/run/attack/hit/death), the
   creature counterpart to `PlayerRig`. The 3 spawned species (Mosslamb bulky, Ashjackal lean/tall,
@@ -238,3 +275,6 @@ Then the broader backlog:
   work in quick succession (form-driven rig refactor + bespoke creature models within the same
   few minutes). Both merged cleanly this time, but if you're about to touch `src/creatures/
   Creature.gd` or `src/game/Main.gd`, re-fetch immediately first — these are the hottest files.
+- **D16 (2026-07-10, TOP PRIORITY):** complete Floor 1 in full (S1–S5) before resuming
+  creature-rig/animation polish. S1+S3 look substantially shipped; S2 (populate the other 7
+  Floor-1 species) is the concrete next gap. See the sync note atop "Next up".
