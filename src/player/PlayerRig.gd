@@ -55,7 +55,7 @@ const _AXIS_Z := Vector3(0.0, 0.0, 1.0)   # roll — hang the arms down / strafe
 # Locomotion thresholds (normalised units; local_dir is velocity / SPRINT_SPEED).
 const MOVE_DEADZONE := 0.12   # below this speed the delver is "standing"
 const TURN_DEADZONE := 0.18   # below this |turn| there's no turn-in-place
-const ONE_SHOTS := ["Roll", "AttackLight1", "AttackLight2", "AttackLight3", "AttackHeavy", "Hit"]
+const ONE_SHOTS := ["Roll", "AttackLight1", "AttackLight2", "AttackLight3", "AttackHeavy", "Hit", "Parry", "Stagger"]
 
 var skeleton: Skeleton3D
 var anim_player: AnimationPlayer
@@ -213,6 +213,8 @@ func _build_animations() -> void:
     lib.add_animation("attack_light3", _make_attack_light3())
     lib.add_animation("attack_heavy", _make_attack_heavy())
     lib.add_animation("hit", _make_hit())
+    lib.add_animation("parry", _make_parry())
+    lib.add_animation("stagger", _make_stagger())
     anim_player.add_animation_library("", lib)
 
 ## Add a bone rotation track; keys is Array[[time, Quaternion]].
@@ -391,6 +393,29 @@ func _make_hit() -> Animation:
     _rot(a, "Spine", [[0.0, _swing(0.0)], [0.08, _swing(-0.2)], [0.20, _swing(0.0)]])
     return a
 
+func _make_parry() -> Animation:
+    # A quick guard: the sword snaps up across the body, then lowers. len 0.4.
+    var a := Animation.new()
+    a.length = 0.4
+    a.loop_mode = Animation.LOOP_NONE
+    _rot(a, "UpperArm_R", [[0.0, _arm_r(0.1)], [0.09, _arm_r(-1.4)], [0.28, _arm_r(-1.2)], [0.4, _arm_r(0.1)]])
+    _rot(a, "LowerArm_R", [[0.0, _swing(0.0)], [0.09, _swing(-0.6)], [0.4, _swing(0.0)]])
+    _rot(a, "Chest", [[0.0, Quaternion(_AXIS_Y, 0.0)], [0.09, Quaternion(_AXIS_Y, 0.28)], [0.4, Quaternion(_AXIS_Y, 0.0)]])
+    return a
+
+func _make_stagger() -> Animation:
+    # Poise break: a hard rock-back stumble with a recovery step. len 0.7.
+    var a := Animation.new()
+    a.length = 0.7
+    a.loop_mode = Animation.LOOP_NONE
+    _rot(a, "Chest", [[0.0, _swing(0.0)], [0.12, _swing(-0.7)], [0.4, _swing(0.2)], [0.7, _swing(0.0)]])
+    _rot(a, "Head", [[0.0, _swing(0.0)], [0.12, _swing(-0.5)], [0.7, _swing(0.0)]])
+    _rot(a, "Spine", [[0.0, _swing(0.0)], [0.12, _swing(-0.3)], [0.7, _swing(0.0)]])
+    _rot(a, "UpperArm_L", [[0.0, _arm_l(0.0)], [0.12, _arm_l(-0.9)], [0.7, _arm_l(0.0)]])
+    _rot(a, "UpperArm_R", [[0.0, _arm_r(0.0)], [0.12, _arm_r(-0.9)], [0.7, _arm_r(0.0)]])
+    _rot(a, "UpperLeg_R", [[0.0, _swing(0.0)], [0.16, _swing(-0.5)], [0.7, _swing(0.0)]])
+    return a
+
 # ------------------------------------------------------------- AnimationTree --
 
 func _build_tree() -> void:
@@ -423,6 +448,8 @@ func _build_tree() -> void:
     sm.add_node("AttackLight3", _anim_node("attack_light3"), Vector2(760, 130))
     sm.add_node("AttackHeavy", _anim_node("attack_heavy"), Vector2(560, 220))
     sm.add_node("Hit", _anim_node("hit"), Vector2(560, 310))
+    sm.add_node("Parry", _anim_node("parry"), Vector2(760, 220))
+    sm.add_node("Stagger", _anim_node("stagger"), Vector2(760, 310))
 
     # Begin in locomotion.
     _trans(sm, "Start", "Move", true, false)
