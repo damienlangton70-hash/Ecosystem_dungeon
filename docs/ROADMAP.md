@@ -92,11 +92,13 @@ and creature-rig polish below. This list hasn't been fully re-sequenced around D
 DECISIONS.md as authoritative on ordering. Status as of this run: **S1 (scale/enclosure) and S3
 (groves/water/ridge/flora) already look substantially shipped** in the current `Main.gd` — a big
 160×150 fully-enclosed cavern, 12 glowcaps, 4 ironbarks, 2 water pools, 3 palewillows, an 8-piece
-rock ridge, 36 cover rocks, 22 glow spots, 24 forageables. **S2 (populate) is the concrete gap:**
-only mosslamb/ashjackal/gloamstalker_lynx spawn today — the other 7 species D16 names for Floor 1
-(Grotto Springhare, Blind Vole, Deep Quail, Gloomferret, Rockback Boar, Spinefowl, Cinder Cockatril)
-are not spawned anywhere yet, despite full stats being ready in `data/lore.json`/`combat.json`.
-**This is the single most concrete next-up item.** S4/S5 status unverified this run.
+rock ridge, 36 cover rocks, 22 glow spots, 24 forageables. **S2 (populate): ✅ SHIPPED (2026-07-10
+pm)** — see "Done recently" below; all 10 species D16 names for Floor 1 now spawn. Two floor-1
+species from `lore.json` that D16's own list didn't name — Capglow Snail (`capglow_snail`,
+detritivore, needs a de-slime prep hazard) and Palefish (`palefish`, aquatic) — are still absent;
+flagging as a small remaining gap, not blocking. **S4 (integration/perf) and S5 (CI delivery)
+status still unverified** — S4 is the natural next D16 item: confirm combat/rigs/audio/cooking/
+ecosystem all hold up with the floor now carrying ~44 creatures at once.
 
 **Also image-inspired (companion to S3, not yet done):** Damien shared a concept-art reference
 (painterly isometric dungeon scene) and asked to "match the look." Rather than chase photoreal
@@ -150,6 +152,24 @@ Then the broader backlog:
    (biped hopper — a good first test of the new `biped` rig path) or Rockback Boar.
 
 ## Done recently
+- **D16-S2: full Floor-1 roster populated (owner-directed):** `Main.gd` now spawns and registers
+  all 10 species `data/lore.json` lists for Floor 1, not just the original 3. Added: **Grotto
+  Springhare, Blind Vole, Deep Quail** (Tier 1 grazers, 6 each, spread across open ground — common
+  prey, matching Mosslamb's density) and **Gloomferret, Rockback Boar, Spinefowl, Cinder Cockatril**
+  (Tier 2 small hunters, 3 each — rarer, matching Ashjackal's density). All hand-placed (no RNG, so
+  positions are eyeball-checked against existing landmarks/each other), all registered in
+  `_build_ecosystem()` so hostility tracking sees them, all combat-tuned from `data/combat.json`
+  (per-creature hp/damage/speed/poise) exactly like the original 3. Floor 1 goes from 14 to 44
+  active creatures. None of the 7 have a bespoke `CreatureModels`/`CreatureRig` body yet, so they
+  render via `Creature.gd`'s generic form-driven rig — confirmed safe by re-reading the whole
+  function before wiring anything up: it has zero dependency on the `Main.FORMS` dict the roadmap
+  used to mention (that was only ever a stale doc-comment, not real code) and is the same
+  already-proven code that rendered Mosslamb/Ashjackal before they were rigged. Predator/prey read
+  (colour, pointed vs. round ears, amber eye-glow) still applies via `is_predator`; bespoke
+  silhouettes for these 7 are a clean future Graphics increment, not required for D16-S2. Capglow
+  Snail and Palefish (also floor-1 in lore.json, not named in D16's own S2 list) are still
+  unspawned — flagged, not blocking. Zero changes to `Creature.gd`/`Player.gd`/combat logic;
+  validated headless green (all 6 self-test checks). Commit `4dec481`.
 - **UI: real styled HUD (owner-directed — "push the game look to match the image"):** replaced
   the placeholder plain-`Label`/flat-`ColorRect` HUD with a real presentation layer, new
   `src/systems/ui/HUD.gd` (`class_name HUD extends CanvasLayer`, owns all HUD nodes + its own
@@ -276,5 +296,6 @@ Then the broader backlog:
   few minutes). Both merged cleanly this time, but if you're about to touch `src/creatures/
   Creature.gd` or `src/game/Main.gd`, re-fetch immediately first — these are the hottest files.
 - **D16 (2026-07-10, TOP PRIORITY):** complete Floor 1 in full (S1–S5) before resuming
-  creature-rig/animation polish. S1+S3 look substantially shipped; S2 (populate the other 7
-  Floor-1 species) is the concrete next gap. See the sync note atop "Next up".
+  creature-rig/animation polish. S1, S2, and S3 now look substantially shipped; **S4
+  (integration/perf with the fuller floor) is the concrete next gap**, S5 (CI delivery) is still
+  blocked on the GitHub Workflows permission. See the sync note atop "Next up".
