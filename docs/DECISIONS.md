@@ -64,6 +64,34 @@ tune once the cooking loop is playable. Don't block on them.
 
 **D11 — ART_DIRECTION.md is the visual canon** and supersedes DESIGN_BIBLE §7. Do the sync pass.
 
+## Combat feel & animation
+
+_Decided 2026-07-10 (owner-directed: "make combat souls-like" + "work on animations"). Starting values — tune in playtest._
+
+**D12 — Animation pipeline: procedural Skeleton3D + AnimationTree.**
+The player is a code-built `Skeleton3D` humanoid with rigid `BoneAttachment3D` box limbs
+(`src/player/PlayerRig.gd`), driven by an `AnimationTree` state machine: a `BlendSpace1D`
+locomotion node (idle→walk→run) plus one-shot Roll / AttackLight / AttackHeavy / Hit states.
+Clips are authored in GDScript (no scene-file merges). Graphics may later swap the box limbs
+for sculpted low-poly meshes **on the same skeleton** without touching animation/state code.
+
+**D13 — Souls-like commitment + dodge-cancel.**
+Attacks and the dodge are committed (no free movement-cancel), EXCEPT a dodge may cancel an
+attack or a flinch — the i-frame roll is the primary defensive tool. Confirmed constants
+(already in `Player.gd`): dodge = 0.45s roll with a 0.35s i-frame window, stamina cost 22;
+light attack 16 / heavy 34 stamina; sprint drains stamina (`SurvivalStats`). Actions are
+blocked at empty stamina. Attack-clip lengths/strike timing mirror `LIGHT/HEAVY.time/.hit`
+so the visible swing lands with the hitscan.
+
+**D14 — Healing is the cooking loop (no separate Estus-style flask).**
+Cooked meals restore HP + timed buffs; campfires and magic circles are the checkpoint layer.
+Souls-like risk/reward maps onto Deepforage's existing survival systems rather than a bolted-on
+heal item.
+
+**D15 — Lock-on is a soft-lock toggle (Q).**
+Targets the nearest creature in range; the player orients to it; it drops when the target
+leaves range/validity. This is the confirmed model to build combat around.
+
 ## Internal cleanup (studio directives, not design calls)
 - Migrate hardcoded `Color(...)` literals in `Main.gd`, `Player.gd`, `Pickup.gd`,
   `Forageable.gd`, `Campfire.gd`, `Creature.gd` to `Palette` tokens.
