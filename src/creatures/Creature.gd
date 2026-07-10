@@ -1,9 +1,12 @@
 class_name Creature
 extends CharacterBody3D
 ## Animalistic creature with a simple AI state machine, poise, and telegraphed
-## attacks. Prey flee; predators chase, WIND UP (a red tell) then strike — giving
-## the player a window to dodge. Heavy hits break poise and stagger them. Deaths
-## report to the Ecosystem. The Lore/Mechanics agents deepen behaviours later.
+## attacks. Prey flee; predators chase, WIND UP (a red tell, D6) then strike —
+## giving the player a window to dodge or parry. Heavy hits break poise and
+## stagger them; lesser hits flinch. On death they topple and sink rather than
+## popping out. Pack hunters commit only 1-2 attackers at once (D5); the rest
+## circle. A successful player parry calls stagger() on the attacker. Deaths
+## report to the Ecosystem.
 
 enum State { WANDER, FLEE, CHASE, ATTACK, STAGGER, DEAD }
 
@@ -21,12 +24,14 @@ enum State { WANDER, FLEE, CHASE, ATTACK, STAGGER, DEAD }
 @export var ambush := false          # stalk slowly, then pounce when close
 @export var chase_speed_mult := 1.0  # speed burst while chasing
 
-const WINDUP_TIME := 0.55
+const WINDUP_TIME := 0.50            # D6: attack tell sits in the 0.4-0.5s band
 const STRIKE_REACH := 2.4
 const STAGGER_TIME := 0.9
 const POISE_REGEN := 8.0
 const ATTACK_COOLDOWN := 1.4
 const POUNCE_SPEED := 9.0
+const PACK_ATTACK_LIMIT := 2         # D5: only 1-2 of a species commit at once
+const FLINCH_KNOCKBACK := 2.5
 
 var health := 30.0
 var poise := 30.0
@@ -39,12 +44,15 @@ var _wander_timer := 0.0
 var _attack_cd := 0.0
 var _windup := 0.0
 var _telegraph := false
+var _committing := false             # this creature currently holds a pack attack slot
 var _stagger_timer := 0.0
 var _pounce_timer := 0.0
 var _pounce_dir := Vector3.ZERO
 var _home := Vector3.ZERO
 var _body_mat: StandardMaterial3D
 var _sfx: AudioStreamPlayer3D
+var _flinch_tween: Tween
+var _death_started := false
 
 func _ready() -> void:
     health = max_health
@@ -292,22 +300,36 @@ func _physics_process(delta: float) -> void:
         elif dist > 2.8:
             _glow(Color.BLACK, false)
             _telegraph = false
+            _committing = false
             state = State.CHASE
         elif _telegraph:
             _windup -= delta
             if _windup <= 0.0:
                 _telegraph = false
+                _committing = false
                 _glow(Color.BLACK, false)
                 _attack_cd = ATTACK_COOLDOWN
-                if dist <= STRIKE_REACH and _player.has_method("take_damage"):
-                    _player.take_damage(attack_damage)
+                if dist <= STRIKE_REACH:
+                    if _player.has_method("receive_attack"):
+                        _player.receive_attack(attack_damage, self)
+                    elif _player.has_method("take_damage"):
+                        _player.take_damage(attack_damage)
         elif _attack_cd <= 0.0:
-            _telegraph = true
-            _windup = WINDUP_TIME
-            _glow(Color(1.0, 0.25, 0.15), true)
-            if _sfx != null:
-                _sfx.stream = Audio.get_stream("growl")
-                _sfx.play()  # red wind-up tell
+            if _pack_can_commit():
+                _telegraph = true
+                _committing = true
+                _windup = WINDUP_TIME
+                _glow(Color(1.0, 0.25, 0.15), true)  # red wind-up tell (D6)
+                if _sfx != null:
+                    _sfx.stream = Audio.get_stream("growl")
+                    _sfx.play()
+            else:
+                # D5: pack is full — circle/feint around the player instead of committing.
+                var toc := _player.global_position - global_position
+                toc.y = 0.0
+                if toc.length() > 0.1:
+                    var tangent := Vector3(-toc.z, 0.0, toc.x).normalized()
+                    desired = tangent * move_speed * 0.7
 
     velocity.x = desired.x
     velocity.z = desired.z
@@ -323,6 +345,21 @@ func _physics_process(delta: float) -> void:
 
     move_and_slide()
 
+## Count how many same-species pack-mates are already committed to an attack; a
+## creature may commit only if fewer than PACK_ATTACK_LIMIT are (D5).
+func _pack_can_commit() -> bool:
+    if _committing:
+        return true
+    var committed := 0
+    for c in get_tree().get_nodes_in_group("creatures"):
+        if c == self or not is_instance_valid(c):
+            continue
+        if c is Creature and c.species_id == species_id and c._committing:
+            committed += 1
+            if committed >= PACK_ATTACK_LIMIT:
+                return false
+    return true
+
 func take_damage(amount: float, poise_damage: float = 0.0) -> void:
     if state == State.DEAD:
         return
@@ -332,14 +369,44 @@ func take_damage(amount: float, poise_damage: float = 0.0) -> void:
         _die()
         return
     if poise <= 0.0:
+        _committing = false
         _enter_stagger()
-    elif not is_predator:
-        state = State.FLEE
+    else:
+        _flinch()
+        if not is_predator:
+            state = State.FLEE
+
+## A non-breaking hit: small knockback + a quick recoil nod so it reads even when
+## poise holds. (The player's impact burst already flashes at the body.)
+func _flinch() -> void:
+    if _player != null and is_instance_valid(_player):
+        var kb := global_position - _player.global_position
+        kb.y = 0.0
+        if kb.length() > 0.1:
+            velocity += kb.normalized() * FLINCH_KNOCKBACK
+    if _flinch_tween != null and _flinch_tween.is_valid():
+        _flinch_tween.kill()
+    rotation.x = 0.0
+    _flinch_tween = create_tween()
+    _flinch_tween.tween_property(self, "rotation:x", -0.18, 0.06)
+    _flinch_tween.tween_property(self, "rotation:x", 0.0, 0.12)
+
+## Public: a successful player parry staggers the attacker outright.
+func stagger() -> void:
+    if state == State.DEAD:
+        return
+    poise = 0.0
+    _committing = false
+    _enter_stagger()
 
 func _enter_stagger() -> void:
     state = State.STAGGER
     _stagger_timer = STAGGER_TIME
     _telegraph = false
+    _committing = false
+    if _flinch_tween != null and _flinch_tween.is_valid():
+        _flinch_tween.kill()
+    rotation.x = 0.0
     _glow(Color(0.5, 0.7, 1.0), true)  # blue-white stagger flash
     if _player != null and is_instance_valid(_player):
         var kb := global_position - _player.global_position
@@ -348,11 +415,25 @@ func _enter_stagger() -> void:
             velocity = kb.normalized() * 6.0
 
 func _die() -> void:
+    if _death_started:
+        return
+    _death_started = true
     state = State.DEAD
+    _telegraph = false
+    _committing = false
+    if _flinch_tween != null and _flinch_tween.is_valid():
+        _flinch_tween.kill()
+    remove_from_group("creatures")   # corpse can't be targeted/hit again
+    _glow(Color.BLACK, false)
     if _ecosystem != null and _ecosystem.has_method("record_kill"):
         _ecosystem.record_kill(species_id, 1)
     _drop_meat()
-    queue_free()
+    # Topple + sink, then remove — a death beat instead of a pop-out.
+    var fall := 1.0 if randf() < 0.5 else -1.0
+    var t := create_tween()
+    t.tween_property(self, "rotation:z", fall * (PI * 0.5), 0.55)
+    t.parallel().tween_property(self, "position:y", position.y - 0.6, 0.8)
+    t.tween_callback(queue_free)
 
 func _drop_meat() -> void:
     var parent := get_parent()
