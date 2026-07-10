@@ -92,12 +92,13 @@ below is backed by concrete spec + loadable data, so implementation isn't blocke
 
 **★ Owner priority (2026-07-10) — Combat / animation track.** Damien asked to make combat
 Souls-like and to work on animations; the approved plan sequences the build starting with the core.
-Increment 1 (skeletal player rig + AnimationTree) shipped this run — continue HERE first:
+Increments 1 (rig + AnimationTree) and 2/A1 (2D locomotion + turn-in-place) have shipped —
+**A2 is now the lead item**:
 
-- **A1 — Directional locomotion:** upgrade the locomotion blend to 2D (strafe / backpedal while
-  locked on) + turn-in-place, building on `PlayerRig`'s AnimationTree.
-- **A2 — Attack game-feel:** light/heavy combo strings with recovery-cancel windows; land-on-hit
-  feedback (brief hitstop + a slash VFX) so blows feel like they connect.
+- **A1 — Directional locomotion: ✅ SHIPPED (2026-07-10).** 2D `BlendSpace2D` (strafe/backpedal,
+  walk→run) + a turn-in-place state, driven by `PlayerRig.update_locomotion()`.
+- **A2 — Attack game-feel (NEXT):** light/heavy combo strings with recovery-cancel windows;
+  land-on-hit feedback (brief hitstop + a slash VFX) so blows feel like they connect.
 - **A3 — Defence + reactions:** player poise/stagger and a parry; extend the same rig approach to
   creature **hit-react + death** animations (dovetails with the Ashjackal tell D6 and pack rule D5).
 - **A4 — Death & recovery loop:** a Souls-style "rest point" at campfires / magic circles + a
@@ -125,6 +126,14 @@ Then the broader backlog:
    (biped hopper — a good first test of the new `biped` rig path) or Rockback Boar.
 
 ## Done recently
+- **Combat / animation — A1: 2D locomotion + turn-in-place (Increment 2, owner-directed):**
+  `PlayerRig`'s Move state upgraded from a 1D speed blend to a **`BlendSpace2D`** keyed on local
+  velocity (strafe/backpedal, walk→run), plus a new **Turn** state for turn-in-place. Five new
+  code clips (walk_back, strafe_left/right, turn_left/right). New
+  `update_locomotion(local_dir, turn_amount)` API drives Move⇄Turn and never interrupts a
+  roll/attack/hit one-shot; `Player.gd` now feeds local-space velocity + per-frame yaw rate.
+  Greybox arcs (left/right sign + swing tuning to refine); Godot 4.3 API, editor/CI authoritative.
+  Commits `6ee8524`, `b10dcdf`.
 - **Combat / animation — skeletal player rig + AnimationTree (Increment 1, owner-directed):** the
   player is no longer a capsule+sphere — new `src/player/PlayerRig.gd` builds a procedural
   Skeleton3D humanoid with rigid `BoneAttachment3D` box limbs, code-authored clips
