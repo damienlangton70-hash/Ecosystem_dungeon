@@ -64,6 +64,17 @@ func _build_body() -> void:
     _body_mat.rim = 0.5
     _body_mat.rim_tint = 0.3
 
+    # Bespoke per-species silhouette (docs/ART_DIRECTION.md §8.3) takes precedence
+    # over the form-driven generic rig below. CreatureModels overrides _body_mat's
+    # albedo_color to the correct species tone itself.
+    if CreatureModels.has_model(species_id):
+        CreatureModels.build(species_id, self, _body_mat, body_height)
+        _sfx = AudioStreamPlayer3D.new()
+        _sfx.unit_size = 6.0
+        add_child(_sfx)
+        return
+
+    # --- form-driven generic rig (gfx: form-driven per-species silhouettes), unchanged below ---
     var lean := is_predator                 # predators lower + leaner
     var torso_len: float = float(form.get("torso_len", 1.05))
     var torso_radius: float = float(form.get("torso_radius", 0.24 if lean else 0.30))
