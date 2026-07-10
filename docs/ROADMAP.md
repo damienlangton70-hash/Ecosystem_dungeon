@@ -92,16 +92,16 @@ below is backed by concrete spec + loadable data, so implementation isn't blocke
 
 **★ Owner priority (2026-07-10) — Combat / animation track.** Damien asked to make combat
 Souls-like and to work on animations; the approved plan sequences the build starting with the core.
-Increments 1 (rig + AnimationTree), 2/A1 (2D locomotion + turn-in-place) and 2/A2 (attack
-game-feel) have shipped — **A3 is now the lead item**:
+Increments 1 (rig + AnimationTree), 2/A1 (2D locomotion + turn-in-place), 2/A2 (attack game-feel)
+and 2/A3 (defence + reactions) have shipped — **A4 is now the lead item**:
 
 - **A1 — Directional locomotion: ✅ SHIPPED (2026-07-10).** 2D `BlendSpace2D` (strafe/backpedal,
   walk→run) + a turn-in-place state, driven by `PlayerRig.update_locomotion()`.
 - **A2 — Attack game-feel: ✅ SHIPPED (2026-07-10).** 3-hit light combo chain with recovery-cancel
   windows + input buffering, hitstop on connect, and slash/impact VFX (`src/systems/combat/CombatFX.gd`).
-- **A3 — Defence + reactions (NEXT):** player poise/stagger and a parry; extend the same rig approach to
-  creature **hit-react + death** animations (dovetails with the Ashjackal tell D6 and pack rule D5).
-- **A4 — Death & recovery loop:** a Souls-style "rest point" at campfires / magic circles + a
+- **A3 — Defence + reactions: ✅ SHIPPED (2026-07-10).** Player poise + stagger and a parry (key R)
+  that staggers the attacker; creature hit-react flinch + topple/sink death; D6 wind-up 0.5s; D5 caps 2 pack attackers.
+- **A4 — Death & recovery loop (NEXT):** a Souls-style "rest point" at campfires / magic circles + a
   drop-and-recover-on-death resource (coin an ORIGINAL name — not "souls"; IP-check per DECISIONS).
 
 Then the broader backlog:
@@ -126,6 +126,16 @@ Then the broader backlog:
    (biped hopper — a good first test of the new `biped` rig path) or Rockback Boar.
 
 ## Done recently
+- **Combat / animation — A3: defence + reactions (Increment 2, owner-directed):** player **poise +
+  stagger** (a break plays a Stagger clip with real loss of control) and a **parry on key R** —
+  `Player.receive_attack(amount, attacker)` deflects a blow in the active window and **staggers the
+  attacker** (teal parry burst + chime). Creatures gained a **hit-react** flinch and a **topple/sink
+  death animation** (no more pop-out; corpse leaves the group). **D6** predator wind-up tightened to
+  0.5s; **D5** caps same-species committed attackers at 2 (the rest circle). New PlayerRig Parry +
+  Stagger states; `Creature.stagger()` + strike routed through `receive_attack`. Creatures still use
+  static meshes, so their reactions are procedural whole-body animation (a true per-species skeletal
+  rig is a later track). Provisional numbers; Godot 4.3 API, editor/CI authoritative. Commits
+  `de5ec09`, `71eb680`, `9862719`.
 - **Combat / animation — A2: attack game-feel (Increment 2, owner-directed):** attacks now feel
   like they connect. A **3-hit light combo chain** (`attack_light1/2/3` in `PlayerRig`) with
   **recovery-cancel windows + input buffering** (`_can_cancel_attack` / `_tick_attack` in
