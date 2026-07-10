@@ -2,9 +2,11 @@ class_name Player
 extends CharacterBody3D
 ## Third-person controller: skill-combat core + survival/cooking loop.
 ## Combat: LMB light attack, RMB heavy attack (slower, committed, big poise
-## damage -> staggers foes), Ctrl dodge-roll with i-frames, Q lock-on. A visible
-## blade swings on attack. Survival: hunt/butcher/forage/campfire/cook/eat with
-## timed buffs; starvation drains HP.
+## damage -> staggers foes), Ctrl dodge-roll with i-frames, Q lock-on. The body
+## is a skeletal low-poly rig (PlayerRig) driven by an AnimationTree: locomotion
+## blend, rolling dodge, committed attack swings, and a hit flinch. The sword
+## rides the right-hand bone so it swings with the arm. Survival:
+## hunt/butcher/forage/campfire/cook/eat with timed buffs; starvation drains HP.
 
 const WALK_SPEED := 4.5
 const SPRINT_SPEED := 7.5
@@ -13,6 +15,8 @@ const MOUSE_SENS := 0.0025
 const ACCEL := 10.0
 
 # Attack profiles: stamina, damage, total swing time, hit delay, poise damage, reach.
+# NOTE: LIGHT.time / HEAVY.time and .hit are mirrored by PlayerRig's attack clip
+# lengths + strike timing, so the visible swing lands with the hitscan.
 const LIGHT := {"stamina": 16.0, "damage": 14.0, "time": 0.40, "hit": 0.12, "poise": 10.0, "range": 2.6}
 const HEAVY := {"stamina": 34.0, "damage": 32.0, "time": 0.75, "hit": 0.40, "poise": 45.0, "range": 3.0}
 
@@ -44,6 +48,7 @@ var _camera: Camera3D
 var _weapon_pivot: Node3D
 var _sfx: AudioStreamPlayer
 var survival
+var _rig: PlayerRig
 
 var _attack_timer := 0.0
 var _attack_total := 0.0
@@ -59,6 +64,7 @@ var lock_target = null
 func _ready() -> void:
     _spawn_point = global_position
     _build_body()
+    _build_rig()
     _build_camera()
     _build_weapon()
     _build_survival()
@@ -69,6 +75,7 @@ func _ready() -> void:
     Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _build_body() -> void:
+    # Physics capsule only — the visible body is the skeletal rig (see _build_rig).
     var col := CollisionShape3D.new()
     var capsule := CapsuleShape3D.new()
     capsule.radius = 0.4
@@ -76,26 +83,14 @@ func _build_body() -> void:
     col.shape = capsule
     col.position = Vector3(0, 0.9, 0)
     add_child(col)
-    var mesh := MeshInstance3D.new()
-    var cap := CapsuleMesh.new()
-    cap.radius = 0.4
-    cap.height = 1.8
-    mesh.mesh = cap
-    mesh.position = Vector3(0, 0.9, 0)
-    var mat := StandardMaterial3D.new()
-    mat.albedo_color = Color(0.86, 0.79, 0.62)
-    mat.rim_enabled = true
-    mat.rim = 0.5
-    mesh.material_override = mat
-    add_child(mesh)
-    var head := MeshInstance3D.new()
-    var hm := SphereMesh.new()
-    hm.radius = 0.28
-    hm.height = 0.5
-    head.mesh = hm
-    head.position = Vector3(0, 1.72, 0)
-    head.material_override = mat
-    add_child(head)
+
+func _build_rig() -> void:
+    # Procedural Skeleton3D humanoid + AnimationTree (idle/walk/run blend, roll,
+    # light/heavy attack, hit). Purely visual: if it ever fails, movement still
+    # works because it's driven by physics below, not by the rig.
+    _rig = PlayerRig.new()
+    _rig.name = "Rig"
+    add_child(_rig)
 
 func _build_camera() -> void:
     _pivot = Node3D.new()
@@ -108,14 +103,23 @@ func _build_camera() -> void:
     _pivot.add_child(_camera)
 
 func _build_weapon() -> void:
+    # Mount the blade on the right-hand bone so it swings with the attack
+    # animation instead of floating in front of the torso. Falls back to a
+    # body-mounted pivot if the rig/hand isn't available.
     _weapon_pivot = Node3D.new()
-    _weapon_pivot.position = Vector3(0.0, 1.1, 0.0)
-    add_child(_weapon_pivot)
+    var hand: Node3D = _rig.get_hand_attachment() if _rig != null else null
+    if hand != null:
+        hand.add_child(_weapon_pivot)
+        _weapon_pivot.position = Vector3.ZERO
+        _weapon_pivot.rotation = Vector3.ZERO
+    else:
+        add_child(_weapon_pivot)
+        _weapon_pivot.position = Vector3(0.0, 1.1, 0.0)
     var blade := MeshInstance3D.new()
     var bmesh := BoxMesh.new()
     bmesh.size = Vector3(0.08, 0.08, 1.15)
     blade.mesh = bmesh
-    blade.position = Vector3(0.36, 0.0, -0.55)
+    blade.position = Vector3(0.0, 0.0, -0.60)
     var bmat := StandardMaterial3D.new()
     bmat.albedo_color = Color(0.76, 0.79, 0.84)
     bmat.metallic = 0.7
@@ -124,9 +128,9 @@ func _build_weapon() -> void:
     _weapon_pivot.add_child(blade)
     var hilt := MeshInstance3D.new()
     var hmesh := BoxMesh.new()
-    hmesh.size = Vector3(0.30, 0.09, 0.09)
+    hmesh.size = Vector3(0.10, 0.10, 0.22)
     hilt.mesh = hmesh
-    hilt.position = Vector3(0.36, 0.0, -0.02)
+    hilt.position = Vector3(0.0, 0.0, 0.03)
     var hmat := StandardMaterial3D.new()
     hmat.albedo_color = Color(0.30, 0.22, 0.14)
     hilt.material_override = hmat
@@ -219,6 +223,8 @@ func _try_attack(kind: String) -> void:
     _attack_total = a["time"]
     _attack_timer = a["time"]
     _hit_done = false
+    if _rig != null:
+        _rig.play_state("AttackHeavy" if kind == "heavy" else "AttackLight")
     _play_sfx("whoosh")
 
 func _do_hit() -> void:
@@ -238,18 +244,6 @@ func _do_hit() -> void:
     if landed:
         _play_sfx("thud")
 
-func _update_weapon() -> void:
-    if _weapon_pivot == null:
-        return
-    if is_attacking() and _attack_total > 0.0:
-        var prog := 1.0 - (_attack_timer / _attack_total)
-        if _attack_type == "heavy":
-            _weapon_pivot.rotation = Vector3(lerpf(-2.0, 1.1, prog), 0.0, 0.0)
-        else:
-            _weapon_pivot.rotation = Vector3(0.0, lerpf(1.1, -1.1, prog), 0.0)
-    else:
-        _weapon_pivot.rotation = _weapon_pivot.rotation.lerp(Vector3(0.15, 0.25, 0.0), 0.2)
-
 func _try_dodge() -> void:
     if is_dodging():
         return
@@ -262,6 +256,8 @@ func _try_dodge() -> void:
     _dodge_dir = dir.normalized()
     _dodge_timer = DODGE_TIME
     _iframe_timer = IFRAME_TIME
+    if _rig != null:
+        _rig.play_state("Roll")
 
 func _toggle_lock() -> void:
     if lock_target != null:
@@ -374,6 +370,8 @@ func take_damage(amount: float) -> void:
         return
     health -= amount * (1.0 - _defense())
     _hitstun = 0.2
+    if _rig != null:
+        _rig.play_state("Hit")
     _play_sfx("hurt")
     if health <= 0.0:
         _respawn()
@@ -407,12 +405,15 @@ func _physics_process(delta: float) -> void:
     _hitstun = maxf(_hitstun - delta, 0.0)
     _tick_buffs(delta)
 
+    # Feed the animation locomotion blend (0 idle .. 1 run) from ground speed.
+    if _rig != null:
+        _rig.set_locomotion(clampf(Vector2(velocity.x, velocity.z).length() / SPRINT_SPEED, 0.0, 1.0))
+
     if is_attacking() and not _hit_done:
         var a: Dictionary = HEAVY if _attack_type == "heavy" else LIGHT
         if _attack_total - _attack_timer >= a["hit"]:
             _do_hit()
             _hit_done = true
-    _update_weapon()
 
     if _status_timer > 0.0:
         _status_timer -= delta
