@@ -90,6 +90,21 @@ The Lore team has now shipped the full design layer **ahead of production** (`do
 `docs/CREATURE_BEHAVIOUR.md`, `docs/RECIPES.md`, `docs/ITEMS.md`, `data/lore.json`) — every item
 below is backed by concrete spec + loadable data, so implementation isn't blocked on design.
 
+**★ Owner priority (2026-07-10) — Combat / animation track.** Damien asked to make combat
+Souls-like and to work on animations; the approved plan sequences the build starting with the core.
+Increment 1 (skeletal player rig + AnimationTree) shipped this run — continue HERE first:
+
+- **A1 — Directional locomotion:** upgrade the locomotion blend to 2D (strafe / backpedal while
+  locked on) + turn-in-place, building on `PlayerRig`'s AnimationTree.
+- **A2 — Attack game-feel:** light/heavy combo strings with recovery-cancel windows; land-on-hit
+  feedback (brief hitstop + a slash VFX) so blows feel like they connect.
+- **A3 — Defence + reactions:** player poise/stagger and a parry; extend the same rig approach to
+  creature **hit-react + death** animations (dovetails with the Ashjackal tell D6 and pack rule D5).
+- **A4 — Death & recovery loop:** a Souls-style "rest point" at campfires / magic circles + a
+  drop-and-recover-on-death resource (coin an ORIGINAL name — not "souls"; IP-check per DECISIONS).
+
+Then the broader backlog:
+
 1. **Descend:** make the shaft load Floor 2 (The Rootways) as a second, deeper environment.
    Per **D3**, Floor 2 is **ground-based** (aerial deferred to Floor 3).
    *(Ready: all Floor 2 / Tier 1–3 species + Rootways ecology in the bestiary + behaviour spec.)*
@@ -110,6 +125,17 @@ below is backed by concrete spec + loadable data, so implementation isn't blocke
    (biped hopper — a good first test of the new `biped` rig path) or Rockback Boar.
 
 ## Done recently
+- **Combat / animation — skeletal player rig + AnimationTree (Increment 1, owner-directed):** the
+  player is no longer a capsule+sphere — new `src/player/PlayerRig.gd` builds a procedural
+  Skeleton3D humanoid with rigid `BoneAttachment3D` box limbs, code-authored clips
+  (idle/walk/run/roll/light/heavy/hit) and an `AnimationTree` state machine (locomotion
+  `BlendSpace1D` + one-shot roll/attack/hit; a dodge can cancel an attack). `Player.gd`'s existing
+  combat states now drive real body animation, the sword rides the right-hand bone, and ground
+  speed feeds the locomotion blend. Decisions **D12–D15**. Greybox (bone proportions/swing arcs
+  will refine); authored against the Godot 4.3 API — no Godot in the build sandbox, so the
+  editor/CI is the authoritative compile; degrades gracefully (movement is physics-driven).
+  A duplicate `class_name Palette` (stale `src/systems/visual/Palette.gd`) was removed by a
+  concurrent run this morning, resolving the collision.
 - **Creature identity:** Mosslamb, Ashjackal, and Gloamstalker Lynx — the 3 currently-spawned
   species — get real bespoke low-poly silhouettes (`src/creatures/CreatureModels.gd`) instead of
   one shared generic rig: Mosslamb's stacked-boulder barrel body + blunt horn-stubs, Ashjackal's
