@@ -41,6 +41,14 @@ The first genuinely fun 10 minutes.
       **meals** that restore hunger, heal, and grant timed buffs (regen / stamina / defense / warmth).
 - [x] **Feel:** readable combat HUD + procedural cave-ambience bed, campfire crackle, and
       combat/creature SFX (whoosh/thud/growl/hurt/chime).
+- [x] **Look & feel:** a studio colour contract (`Palette.gd`) + shared material language
+      (`MaterialLib.gd`, now with real 64×64 tileable textures) + a low-poly flora library
+      (`Flora.gd`) — silhouette-distinct trees and per-ingredient forageables; Floor 1 rewired
+      off the palette. Full art bible in `docs/ART_DIRECTION.md`, including a §8 art-requirements
+      table for the whole 30-creature/10-insect/23-flora roster.
+- [x] **Creature identity:** the 3 currently-spawned species (Mosslamb, Ashjackal, Gloamstalker
+      Lynx) get real bespoke low-poly silhouettes instead of one shared generic rig — see "Done
+      recently" below for detail.
 
 ### M2 — The Ecosystem Reacts
 - [ ] Populations per species; predators hunt prey; day/rest cycle ticks the sim.
@@ -81,8 +89,6 @@ The first genuinely fun 10 minutes.
 The Lore team has now shipped the full design layer **ahead of production** (`docs/BESTIARY.md`,
 `docs/CREATURE_BEHAVIOUR.md`, `docs/RECIPES.md`, `docs/ITEMS.md`, `data/lore.json`) — every item
 below is backed by concrete spec + loadable data, so implementation isn't blocked on design.
-(The Gloamstalker Lynx just added in M1 pt.5 is a good proof: its ambush/pounce behaviour matches
-the ambush-predator archetype in `docs/CREATURE_BEHAVIOUR.md`.)
 
 1. **Descend:** make the shaft load Floor 2 (The Rootways) as a second, deeper environment.
    Per **D3**, Floor 2 is **ground-based** (aerial deferred to Floor 3).
@@ -98,8 +104,22 @@ the ambush-predator archetype in `docs/CREATURE_BEHAVIOUR.md`.)
    packs commit 1–2 attackers (D5).
    *(Ready: per-archetype attack wind-up/recovery/tell timings in `CREATURE_BEHAVIOUR.md`.)*
 5. **Audio depth:** a warm music sting at camp; distinct per-creature calls.
+6. **More creature identity:** wire real `form` dicts (torso/leg/head proportions, ear/tail style,
+   biped support — see `Creature.gd`'s new parametric rig, `Main.FORMS` referenced but not yet
+   created) or bespoke `CreatureModels` entries for the next species up, e.g. Grotto Springhare
+   (biped hopper — a good first test of the new `biped` rig path) or Rockback Boar.
 
 ## Done recently
+- **Creature identity:** Mosslamb, Ashjackal, and Gloamstalker Lynx — the 3 currently-spawned
+  species — get real bespoke low-poly silhouettes (`src/creatures/CreatureModels.gd`) instead of
+  one shared generic rig: Mosslamb's stacked-boulder barrel body + blunt horn-stubs, Ashjackal's
+  lean snout + shoulder ridges + small amber eye-glow, Gloamstalker Lynx's low stalking posture +
+  angular shoulder blades + teal ruff-flecks. Per `docs/ART_DIRECTION.md` §8.3's art-requirements
+  table. Added 3 new `Palette` tokens (`ASH_GREY`, `AMBER_EYESHINE`, `CHARCOAL_BLACK`) per §8.1's
+  proposal. Landed alongside (not instead of) a separate same-morning `form`-driven parametric
+  rig refactor to the generic body-builder (torso/leg/head proportions, ear/tail style, biped
+  support) — the two coexist: bespoke models for these 3 species, the parametric rig as fallback
+  for the other 27 documented-but-not-yet-spawned species. Validated headless, self-test green.
 - **data-driven wiring:** the game now loads `data/lore.json` (via new `LoreData`) — species
   identity, tier, carrying capacity, aggression, awareness, diet, and flora names come from the
   Lore layer; combat numbers derive from a per-tier tuning table. Exports bundle `data/*.json`.
@@ -149,3 +169,7 @@ the ambush-predator archetype in `docs/CREATURE_BEHAVIOUR.md`.)
 - **Real headless CI still needs the Workflows permission:** grant the GitHub app **Workflows** and
   move `ci/build.yml` → `.github/workflows/build.yml` so `tools/validate.sh` runs on every push.
   (This run's changes are docs + one unreferenced JSON — non-code — so the build is unaffected.)
+- **Concurrency note:** multiple same-morning runs have been landing overlapping graphics/creature
+  work in quick succession (form-driven rig refactor + bespoke creature models within the same
+  few minutes). Both merged cleanly this time, but if you're about to touch `src/creatures/
+  Creature.gd` or `src/game/Main.gd`, re-fetch immediately first — these are the hottest files.
