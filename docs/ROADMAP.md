@@ -103,6 +103,10 @@ and 2/A3 (defence + reactions) have shipped — **A4 is now the lead item**:
   that staggers the attacker; creature hit-react flinch + topple/sink death; D6 wind-up 0.5s; D5 caps 2 pack attackers.
 - **A4 — Death & recovery loop (NEXT):** a Souls-style "rest point" at campfires / magic circles + a
   drop-and-recover-on-death resource (coin an ORIGINAL name — not "souls"; IP-check per DECISIONS).
+- **Creature rigs — parallel track, STARTED (2026-07-10):** the 3 spawned species (Mosslamb,
+  Ashjackal, Gloamstalker Lynx) now use a true `CreatureRig` (Skeleton3D + AnimationTree:
+  walk/run/attack/hit/death), like the player. Next on this track: rig species as they're added +
+  gait polish (4-beat gaits, foot-plant, a dedicated stagger clip).
 
 Then the broader backlog:
 
@@ -126,6 +130,14 @@ Then the broader backlog:
    (biped hopper — a good first test of the new `biped` rig path) or Rockback Boar.
 
 ## Done recently
+- **Creature skeletal-rig track — STARTED (owner-directed):** new `src/creatures/CreatureRig.gd` —
+  a parametric **quadruped** Skeleton3D + `AnimationTree` (idle/walk/run/attack/hit/death), the
+  creature counterpart to `PlayerRig`. The 3 spawned species (Mosslamb bulky, Ashjackal lean/tall,
+  Gloamstalker Lynx long/low — via `_PARAMS`) now build a `CreatureRig` instead of a static body;
+  `Creature.gd` drives it from the AI state machine (locomotion by speed; Attack on the telegraph,
+  Hit on flinch/stagger, Death on death). Shares the creature material so telegraph/stagger `_glow`
+  still tints it. Other 27 species keep the static/procedural body until rigged later. Greybox gaits;
+  Godot 4.3 API, editor/CI authoritative. Commits `f596545`, `ccf1b9e`.
 - **Combat / animation — A3: defence + reactions (Increment 2, owner-directed):** player **poise +
   stagger** (a break plays a Stagger clip with real loss of control) and a **parry on key R** —
   `Player.receive_attack(amount, attacker)` deflects a blow in the active window and **staggers the
