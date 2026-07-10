@@ -151,6 +151,27 @@ Then the broader backlog:
    (biped hopper — a good first test of the new `biped` rig path) or Rockback Boar.
 
 ## Done recently
+- **UI: HUD re-skinned to the parchment field-journal vision (owner decision):** the HUD shipped
+  a few runs ago (see the "real styled HUD" entry below) followed the reference-image's dark/
+  monospace chrome; that surfaced a real conflict with `docs/ART_DIRECTION.md` §6's own written
+  spec, which calls for a warm hand-inked field-journal look instead. Asked Damien rather than
+  picking a side — he chose §6 as canon, so `src/systems/ui/HUD.gd` is now re-skinned to match:
+  warm parchment/cream panel tint + a thin ink border on every side (dropped the old "coloured top
+  accent stripe," itself the vector-flat-corporate look §6 warns against — every panel now shares
+  one uniform ink-on-parchment frame), a hand-lettered/brush `SystemFont` for headers only
+  (`Bradley Hand`/`Segoe Print`/`Noteworthy`/... fallback chain) paired with a clean serif for
+  body/stat text, and small diamond-rotated colour swatches (`Control.rotation_degrees` +
+  `pivot_offset` — a real Control-level transform, not Node2D) instead of flat square icons.
+  Per §6.2 step 1 ("re-skin first, restructure never"): panel positions and every data binding are
+  byte-for-byte unchanged from the previous pass — only colour/typography/frame changed. Colour
+  stays reserved for meaningful data only, per §6.1: HP/STA/HUNGER bars keep `WARN`/`GLOW_TEAL`/
+  `FLAME`, provisions chips keep `Palette.ingredient_color` swatches, and nothing else gets a
+  special accent colour anymore. Also used this pass to sync `docs/ART_DIRECTION.md` §8.3's
+  creature-status table to reality (was still calling Mosslamb/Ashjackal/Lynx "placeholder
+  capsules" post-`CreatureRig`, and the 7 newly-populated species "not yet built") and flagged
+  which §8.1-proposed Palette tokens are real vs. still proposals (D11 sync pass). Zero
+  gameplay-logic touched; validated headless green. Commits `5b5220e` (HUD), `93a9e45` (art bible
+  sync).
 - **World: stilt shelter + hanging lantern + mushroom clusters (owner-directed, image-inspired
   S3 richness):** new `src/world/Structures.gd` (landmark architecture — explicitly NOT the M3
   player-buildable shelter/tent/den/magic-circle system; a hand-placed static prop, same tier as
