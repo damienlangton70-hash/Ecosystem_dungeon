@@ -1,25 +1,59 @@
-# NOTE: This is the CI build workflow. The GitHub integration could not write it to
-# .github/workflows/ (that path needs the GitHub App 'Workflows' permission).
-# To activate CI: move this file to .github/workflows/build.yml in your local clone
-# and push it (or grant the app Workflows permission and let the agent place it).
+# =============================================================================
+# STAGED CI WORKFLOW - NOT ACTIVE AT THIS PATH.
+# GitHub only runs workflows under .github/workflows/. This file lives in ci/
+# because writing to .github/workflows/ requires the GitHub App "Workflows"
+# permission (Repository permissions -> Workflows: Read and write).
+# ACTIVATE: grant that permission, then place this file's contents at
+# .github/workflows/build.yml (the Studio Director can do it via the integration
+# once unblocked, or push it from a local clone). Contents below are final/ready.
+# =============================================================================
+
+# Deepforage — CI. Validate on every push & pull request; export desktop builds on main.
+# The `validate` job downloads Godot 4.3 headless and runs tools/validate.sh
+# (project import + boot smoke-test + gameplay self-test + originality lint), so a
+# broken commit — a parse error, a duplicate class_name, or a banned external-IP
+# name — fails fast instead of lingering on main. The heavier `export` job (needs
+# export templates) runs only on pushes to main.
 
 name: Build Deepforage
 
 on:
   push:
-    branches: [ main ]
+  pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.3-stable"
+  GODOT_DOTVER: "4.3.stable"
+
 jobs:
-  build:
+  validate:
+    name: Validate (QA gate)
     runs-on: ubuntu-latest
-    env:
-      GODOT_VERSION: "4.3-stable"
-      GODOT_DOTVER: "4.3.stable"
     steps:
       - uses: actions/checkout@v4
+      - name: Install Godot 4.3 (headless editor)
+        run: |
+          set -e
+          curl -sSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}_linux.x86_64" godot
+          chmod +x godot
+      - name: Run validate.sh (import + boot + self-test + originality lint)
+        run: GODOT="$PWD/godot" bash tools/validate.sh .
 
-      - name: Install Godot + export templates
+  export:
+    name: Export desktop builds
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot 4.3 + export templates
         run: |
           set -e
           curl -sSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
@@ -31,23 +65,16 @@ jobs:
           TPL="$HOME/.local/share/godot/export_templates/${GODOT_DOTVER}"
           mkdir -p "$TPL"
           mv templates/* "$TPL/"
-
-      - name: Validate project (gate)
-        run: GODOT="$PWD/godot" bash tools/validate.sh .
-
       - name: Export Linux
         continue-on-error: true
         run: |
           mkdir -p build/linux
-          ./godot --headless --path . --export-release "Linux" build/linux/Deepforage.x86_64 \
-            || ./godot --headless --path . --export-release "Linux/X11" build/linux/Deepforage.x86_64
-
+          ./godot --headless --path . --export-release "Linux" build/linux/Deepforage.x86_64
       - name: Export Windows
         continue-on-error: true
         run: |
           mkdir -p build/windows
           ./godot --headless --path . --export-release "Windows Desktop" build/windows/Deepforage.exe
-
       - name: Upload desktop builds
         uses: actions/upload-artifact@v4
         with:
