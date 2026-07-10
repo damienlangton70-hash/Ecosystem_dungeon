@@ -6,17 +6,19 @@ extends Node3D
 ##
 ## Why this exists: the combat *logic* (stamina, i-frame dodge, light/heavy
 ## attacks, lock-on, hitstun) already lives in Player.gd — what was missing was a
-## body that moves with WEIGHT. This node is the visual/animation layer: a real
-## Skeleton3D, a locomotion blend (idle->walk->run), a rolling dodge, committed
-## attack swings and a flinch. Player.gd calls two methods —
-## set_locomotion(speed01) and play_state(name) — and mounts the sword on the
-## right-hand bone via get_hand_attachment().
+## body that moves with WEIGHT. This node is the visual/animation layer.
+##
+## Locomotion (Increment 2 / A1): a 2D BlendSpace keyed on LOCAL velocity —
+## X = strafe (right +), Y = forward (+) / backpedal (-), magnitude = walk..run —
+## so strafing and backpedalling animate correctly (the Souls-like locked-on
+## feel), not a forward run cycle played sideways. A separate Turn state handles
+## turn-in-place when the delver stands still and rotates. Player.gd drives it via
+## update_locomotion(local_dir, turn_amount); one-shots (roll/attack/hit) go
+## through play_state(name) and are never interrupted by locomotion.
 ##
 ## Rigging style: rigid "boxes bolted to bones" (one BoneAttachment3D + one box
-## MeshInstance per bone). This is the classic stylised low-poly look and is far
-## more robust to author than a hand-skinned ArrayMesh. The Graphics agent can
-## later swap the box limbs for sculpted low-poly meshes on the SAME skeleton
-## without touching any animation / state-machine code below.
+## MeshInstance per bone). The Graphics agent can later swap the box limbs for
+## sculpted low-poly meshes on the SAME skeleton without touching this code.
 ##
 ## First-pass greybox: joint proportions and swing arcs are tuned by eye and will
 ## refine over later combat increments. Everything degrades gracefully — if any
@@ -48,7 +50,12 @@ const _SKEL := [
 # Rotation axes (all unit vectors, so Quaternion(axis, angle) never errors).
 const _AXIS_X := Vector3(1.0, 0.0, 0.0)   # left/right — the forward/back swing axis
 const _AXIS_Y := Vector3(0.0, 1.0, 0.0)   # up — the twist axis
-const _AXIS_Z := Vector3(0.0, 0.0, 1.0)   # roll — used only to hang the arms down
+const _AXIS_Z := Vector3(0.0, 0.0, 1.0)   # roll — hang the arms down / strafe lean
+
+# Locomotion thresholds (normalised units; local_dir is velocity / SPRINT_SPEED).
+const MOVE_DEADZONE := 0.12   # below this speed the delver is "standing"
+const TURN_DEADZONE := 0.18   # below this |turn| there's no turn-in-place
+const ONE_SHOTS := ["Roll", "AttackLight", "AttackHeavy", "Hit"]
 
 var skeleton: Skeleton3D
 var anim_player: AnimationPlayer
@@ -71,11 +78,43 @@ func _ready() -> void:
 
 # ---------------------------------------------------------------- public API --
 
-## 0 = idle, ~0.5 = walk, 1 = run. Player.gd feeds normalised horizontal speed.
-func set_locomotion(speed01: float) -> void:
+## Drive locomotion each physics frame. local_dir is velocity in the body's local
+## frame divided by sprint speed (x = strafe right, y = forward); turn_amount is
+## the normalised yaw change (-1 left .. +1 right) for turn-in-place. Manages the
+## Move/Turn states and NEVER interrupts an active roll/attack/hit one-shot.
+func update_locomotion(local_dir: Vector2, turn_amount: float) -> void:
+    if _playback == null:
+        return
+    set_move(local_dir)
+    set_turn(turn_amount)
+    var cur := String(_playback.get_current_node())
+    if cur in ONE_SHOTS:
+        return
+    var moving := local_dir.length() > MOVE_DEADZONE
+    if moving or absf(turn_amount) <= TURN_DEADZONE:
+        if cur != "Move":
+            _playback.travel("Move")
+    else:
+        if cur != "Turn":
+            _playback.travel("Turn")
+
+## Set the 2D locomotion blend directly (x = strafe right, y = forward).
+func set_move(local_dir: Vector2) -> void:
     if anim_tree == null:
         return
-    anim_tree.set("parameters/Move/blend_position", clampf(speed01, 0.0, 1.0))
+    anim_tree.set("parameters/Move/blend_position",
+        Vector2(clampf(local_dir.x, -1.0, 1.0), clampf(local_dir.y, -1.0, 1.0)))
+
+## Set the turn-in-place blend (-1 left .. +1 right).
+func set_turn(turn_amount: float) -> void:
+    if anim_tree == null:
+        return
+    anim_tree.set("parameters/Turn/blend_position", clampf(turn_amount, -1.0, 1.0))
+
+## Back-compat shim (Increment 1 API): forward-only speed blend. Kept so any
+## caller mid-migration still animates; prefer update_locomotion / set_move.
+func set_locomotion(speed01: float) -> void:
+    set_move(Vector2(0.0, clampf(speed01, 0.0, 1.0)))
 
 ## Travel to a one-shot state: "Roll", "AttackLight", "AttackHeavy", "Hit".
 func play_state(state: String) -> void:
@@ -158,13 +197,18 @@ func _build_animations() -> void:
     lib.add_animation("idle", _make_idle())
     lib.add_animation("walk", _make_locomotion(0.9, 0.5, 0.4, 0.05))
     lib.add_animation("run", _make_locomotion(0.55, 0.95, 0.75, 0.16))
+    lib.add_animation("walk_back", _make_walk_back())
+    lib.add_animation("strafe_left", _make_strafe(-1.0))
+    lib.add_animation("strafe_right", _make_strafe(1.0))
+    lib.add_animation("turn_left", _make_turn(-1.0))
+    lib.add_animation("turn_right", _make_turn(1.0))
     lib.add_animation("roll", _make_roll())
     lib.add_animation("attack_light", _make_attack_light())
     lib.add_animation("attack_heavy", _make_attack_heavy())
     lib.add_animation("hit", _make_hit())
     anim_player.add_animation_library("", lib)
 
-## Add a bone rotation track and return nothing; keys is Array[[time, Quaternion]].
+## Add a bone rotation track; keys is Array[[time, Quaternion]].
 func _rot(anim: Animation, bone: String, keys: Array) -> void:
     var t := anim.add_track(Animation.TYPE_ROTATION_3D)
     anim.track_set_path(t, NodePath("Skeleton3D:%s" % bone))
@@ -216,6 +260,58 @@ func _make_locomotion(length: float, leg_amp: float, arm_amp: float, lean: float
     # Forward lean + a little vertical bob on the hips.
     _rot(a, "Chest", [[0.0, _swing(lean)], [length, _swing(lean)]])
     _pos(a, "Hips", [[0.0, Vector3(0.0, 0.98, 0.0)], [q, Vector3(0.0, 1.0, 0.0)], [h, Vector3(0.0, 0.98, 0.0)], [tq, Vector3(0.0, 1.0, 0.0)], [length, Vector3(0.0, 0.98, 0.0)]])
+    return a
+
+func _make_walk_back() -> Animation:
+    # Backpedal: shorter strides, a slight backward lean so it doesn't read as a
+    # reversed forward walk.
+    var a := Animation.new()
+    a.length = 0.95
+    a.loop_mode = Animation.LOOP_LINEAR
+    var q := 0.2375
+    var h := 0.475
+    var tq := 0.7125
+    var length := 0.95
+    var amp := 0.34
+    var aamp := 0.26
+    _rot(a, "UpperLeg_L", [[0.0, _swing(0.0)], [q, _swing(-amp)], [h, _swing(0.0)], [tq, _swing(amp)], [length, _swing(0.0)]])
+    _rot(a, "UpperLeg_R", [[0.0, _swing(0.0)], [q, _swing(amp)], [h, _swing(0.0)], [tq, _swing(-amp)], [length, _swing(0.0)]])
+    _rot(a, "UpperArm_L", [[0.0, _arm_l(0.0)], [q, _arm_l(aamp)], [h, _arm_l(0.0)], [tq, _arm_l(-aamp)], [length, _arm_l(0.0)]])
+    _rot(a, "UpperArm_R", [[0.0, _arm_r(0.0)], [q, _arm_r(-aamp)], [h, _arm_r(0.0)], [tq, _arm_r(aamp)], [length, _arm_r(0.0)]])
+    _rot(a, "Chest", [[0.0, _swing(-0.10)], [length, _swing(-0.10)]])   # lean back
+    return a
+
+func _make_strafe(sign: float) -> Animation:
+    # Side-step shuffle: lean into the strafe (roll about Z), legs abduct/adduct
+    # alternately so it reads as sideways travel rather than a forward cycle.
+    var a := Animation.new()
+    a.length = 0.7
+    a.loop_mode = Animation.LOOP_LINEAR
+    var h := 0.35
+    var length := 0.7
+    var lean := Quaternion(_AXIS_Z, sign * -0.14)
+    _rot(a, "Chest", [[0.0, lean], [length, lean]])
+    _rot(a, "Hips", [[0.0, Quaternion(_AXIS_Z, sign * -0.06)], [length, Quaternion(_AXIS_Z, sign * -0.06)]])
+    _rot(a, "UpperLeg_L", [[0.0, Quaternion(_AXIS_Z, 0.0)], [h, Quaternion(_AXIS_Z, sign * 0.34)], [length, Quaternion(_AXIS_Z, 0.0)]])
+    _rot(a, "UpperLeg_R", [[0.0, Quaternion(_AXIS_Z, sign * 0.34)], [h, Quaternion(_AXIS_Z, 0.0)], [length, Quaternion(_AXIS_Z, sign * 0.34)]])
+    _rot(a, "UpperArm_L", [[0.0, _arm_l(0.0)], [h, _arm_l(0.14)], [length, _arm_l(0.0)]])
+    _rot(a, "UpperArm_R", [[0.0, _arm_r(0.0)], [h, _arm_r(-0.14)], [length, _arm_r(0.0)]])
+    return a
+
+func _make_turn(sign: float) -> Animation:
+    # Turn-in-place: small alternating foot lifts (stepping around) + the chest
+    # leading the turn. The actual yaw is done by the controller; this just keeps
+    # the feet from looking like they slide.
+    var a := Animation.new()
+    a.length = 0.8
+    a.loop_mode = Animation.LOOP_LINEAR
+    var h := 0.4
+    var length := 0.8
+    _rot(a, "UpperLeg_L", [[0.0, _swing(0.0)], [h, _swing(0.28)], [length, _swing(0.0)]])
+    _rot(a, "UpperLeg_R", [[0.0, _swing(0.28)], [h, _swing(0.0)], [length, _swing(0.28)]])
+    _rot(a, "Chest", [[0.0, Quaternion(_AXIS_Y, 0.0)], [h, Quaternion(_AXIS_Y, sign * 0.18)], [length, Quaternion(_AXIS_Y, 0.0)]])
+    _rot(a, "UpperArm_L", [[0.0, _arm_l(0.05)], [h, _arm_l(0.12)], [length, _arm_l(0.05)]])
+    _rot(a, "UpperArm_R", [[0.0, _arm_r(0.05)], [h, _arm_r(0.12)], [length, _arm_r(0.05)]])
     return a
 
 func _make_roll() -> Animation:
@@ -273,14 +369,27 @@ func _make_hit() -> Animation:
 func _build_tree() -> void:
     var sm := AnimationNodeStateMachine.new()
 
-    var move := AnimationNodeBlendSpace1D.new()
-    move.min_space = 0.0
-    move.max_space = 1.0
-    move.add_blend_point(_anim_node("idle"), 0.0)
-    move.add_blend_point(_anim_node("walk"), 0.5)
-    move.add_blend_point(_anim_node("run"), 1.0)
+    # 2D locomotion: X = strafe right, Y = forward; magnitude = walk..run.
+    var move := AnimationNodeBlendSpace2D.new()
+    move.min_space = Vector2(-1.0, -1.0)
+    move.max_space = Vector2(1.0, 1.0)
+    move.add_blend_point(_anim_node("idle"), Vector2(0.0, 0.0))
+    move.add_blend_point(_anim_node("walk"), Vector2(0.0, 0.5))
+    move.add_blend_point(_anim_node("run"), Vector2(0.0, 1.0))
+    move.add_blend_point(_anim_node("walk_back"), Vector2(0.0, -0.8))
+    move.add_blend_point(_anim_node("strafe_left"), Vector2(-0.8, 0.0))
+    move.add_blend_point(_anim_node("strafe_right"), Vector2(0.8, 0.0))
+
+    # Turn-in-place: idle at centre, turn clips at the extremes.
+    var turn := AnimationNodeBlendSpace1D.new()
+    turn.min_space = -1.0
+    turn.max_space = 1.0
+    turn.add_blend_point(_anim_node("turn_left"), -1.0)
+    turn.add_blend_point(_anim_node("idle"), 0.0)
+    turn.add_blend_point(_anim_node("turn_right"), 1.0)
 
     sm.add_node("Move", move, Vector2(300, 160))
+    sm.add_node("Turn", turn, Vector2(300, 300))
     sm.add_node("Roll", _anim_node("roll"), Vector2(560, 40))
     sm.add_node("AttackLight", _anim_node("attack_light"), Vector2(560, 130))
     sm.add_node("AttackHeavy", _anim_node("attack_heavy"), Vector2(560, 220))
@@ -288,9 +397,14 @@ func _build_tree() -> void:
 
     # Begin in locomotion.
     _trans(sm, "Start", "Move", true, false)
-    # Manual travel INTO one-shots; auto-return to Move when the clip ends.
-    for s in ["Roll", "AttackLight", "AttackHeavy", "Hit"]:
+    # Move <-> Turn are code-driven (update_locomotion), immediate both ways.
+    _trans(sm, "Move", "Turn", false, false)
+    _trans(sm, "Turn", "Move", false, false)
+    # Manual travel INTO one-shots from either locomotion state; auto-return to
+    # Move when the clip ends.
+    for s in ONE_SHOTS:
         _trans(sm, "Move", s, false, false)
+        _trans(sm, "Turn", s, false, false)
         _trans(sm, s, "Move", true, true)
     # A dodge can cancel an attack or a flinch (i-frames are the main defence).
     for s in ["AttackLight", "AttackHeavy", "Hit"]:
