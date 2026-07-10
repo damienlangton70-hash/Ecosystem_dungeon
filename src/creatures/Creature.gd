@@ -17,6 +17,7 @@ enum State { WANDER, FLEE, CHASE, ATTACK, STAGGER, DEAD }
 @export var detect_radius := 10.0
 @export var body_color := Color(0.8, 0.8, 0.75)
 @export var body_height := 1.2
+@export var form: Dictionary = {}  # per-species silhouette params (see Main.FORMS)
 @export var ambush := false          # stalk slowly, then pounce when close
 @export var chase_speed_mult := 1.0  # speed burst while chasing
 
@@ -64,84 +65,127 @@ func _build_body() -> void:
     _body_mat.rim_tint = 0.3
 
     var lean := is_predator                 # predators lower + leaner
-    var leg_len := body_height * 0.42
-    var torso_y := leg_len + 0.12
-    var total_h := torso_y + 0.5
+    var torso_len: float = float(form.get("torso_len", 1.05))
+    var torso_radius: float = float(form.get("torso_radius", 0.24 if lean else 0.30))
+    var leg_len: float = body_height * 0.42 * float(form.get("leg_len", 1.0))
+    var leg_radius: float = float(form.get("leg_radius", 0.085))
+    var head_radius: float = float(form.get("head_radius", 0.26))
+    var ears: String = str(form.get("ears", "pointed" if lean else "round"))
+    var tail_style: String = str(form.get("tail", "short"))
+    var biped: bool = bool(form.get("biped", false))
 
-    # Collision box enclosing the quadruped (feet at y=0).
-    var col := CollisionShape3D.new()
-    var box := BoxShape3D.new()
-    box.size = Vector3(0.7, total_h, 1.3)
-    col.shape = box
-    col.position = Vector3(0, total_h * 0.5, 0)
-    add_child(col)
+    var torso_y := 0.0
+    var head_pos := Vector3.ZERO
+    var total_h := 1.0
 
-    # Torso — a horizontal capsule running front-to-back.
-    var torso := MeshInstance3D.new()
-    var tm := CapsuleMesh.new()
-    tm.radius = 0.24 if lean else 0.30
-    tm.height = 1.05
-    torso.mesh = tm
-    torso.rotation = Vector3(deg_to_rad(90), 0.0, 0.0)
-    torso.position = Vector3(0, torso_y, 0)
-    torso.material_override = _body_mat
-    add_child(torso)
+    if biped:
+        # Upright hopper/bird: two big hind legs, near-vertical body, head on top.
+        var body_h := maxf(body_height * 0.7, torso_radius * 2.0 + 0.05)
+        torso_y = leg_len + body_h * 0.4
+        for bx in [-0.15, 0.15]:
+            var bleg := MeshInstance3D.new()
+            var blm := CylinderMesh.new()
+            blm.top_radius = leg_radius * 1.2
+            blm.bottom_radius = leg_radius * 1.3
+            blm.height = leg_len * 1.3
+            bleg.mesh = blm
+            bleg.position = Vector3(bx, leg_len * 0.65, 0.06)
+            bleg.material_override = _body_mat
+            add_child(bleg)
+        var btorso := MeshInstance3D.new()
+        var btcap := CapsuleMesh.new()
+        btcap.radius = torso_radius
+        btcap.height = body_h
+        btorso.mesh = btcap
+        btorso.rotation = Vector3(deg_to_rad(12), 0.0, 0.0)
+        btorso.position = Vector3(0, torso_y, 0)
+        btorso.material_override = _body_mat
+        add_child(btorso)
+        head_pos = Vector3(0, torso_y + body_h * 0.5 + head_radius * 0.4, -0.12)
+        total_h = head_pos.y + head_radius + 0.1
+    else:
+        # Quadruped: horizontal torso + four legs.
+        torso_y = leg_len + torso_radius * 0.6
+        var qtorso := MeshInstance3D.new()
+        var qtm := CapsuleMesh.new()
+        qtm.radius = torso_radius
+        qtm.height = maxf(torso_len, torso_radius * 2.0 + 0.05)
+        qtorso.mesh = qtm
+        qtorso.rotation = Vector3(deg_to_rad(90), 0.0, 0.0)
+        qtorso.position = Vector3(0, torso_y, 0)
+        qtorso.material_override = _body_mat
+        add_child(qtorso)
+        var lx_off := torso_radius * 0.75
+        var lz_off := torso_len * 0.32
+        for lx in [-lx_off, lx_off]:
+            for lz in [-lz_off, lz_off]:
+                var qleg := MeshInstance3D.new()
+                var qlm := CylinderMesh.new()
+                qlm.top_radius = leg_radius
+                qlm.bottom_radius = leg_radius * 0.9
+                qlm.height = leg_len
+                qleg.mesh = qlm
+                qleg.position = Vector3(lx, leg_len * 0.5, lz)
+                qleg.material_override = _body_mat
+                add_child(qleg)
+        head_pos = Vector3(0, torso_y + head_radius * 0.4, -(torso_len * 0.5 + 0.12))
+        total_h = torso_y + torso_radius + 0.3
+        if tail_style != "none":
+            var qtail := MeshInstance3D.new()
+            var qtlm := CylinderMesh.new()
+            qtlm.top_radius = 0.03
+            qtlm.bottom_radius = 0.07
+            qtlm.height = 0.6 if tail_style == "long" else 0.32
+            qtail.mesh = qtlm
+            qtail.rotation = Vector3(deg_to_rad(55), 0.0, 0.0)
+            qtail.position = Vector3(0, torso_y + 0.05, torso_len * 0.5 + 0.06)
+            qtail.material_override = _body_mat
+            add_child(qtail)
 
-    # Four legs.
-    for lx in [-0.22, 0.22]:
-        for lz in [-0.34, 0.34]:
-            var leg := MeshInstance3D.new()
-            var lm := CylinderMesh.new()
-            lm.top_radius = 0.09
-            lm.bottom_radius = 0.08
-            lm.height = leg_len
-            leg.mesh = lm
-            leg.position = Vector3(lx, leg_len * 0.5, lz)
-            leg.material_override = _body_mat
-            add_child(leg)
-
-    # Head at the front (-Z).
-    var head_pos := Vector3(0, torso_y + 0.14, -0.62)
+    # Head (shared).
     var head := MeshInstance3D.new()
     var hm := SphereMesh.new()
-    hm.radius = 0.26
-    hm.height = 0.44
+    hm.radius = head_radius
+    hm.height = head_radius * 1.7
     head.mesh = hm
     head.position = head_pos
     head.material_override = _body_mat
     add_child(head)
 
-    # Ears — pointed for predators, small + rounded for prey.
-    for ex in [-0.12, 0.12]:
-        var ear := MeshInstance3D.new()
-        var earm := CylinderMesh.new()
-        if is_predator:
-            earm.top_radius = 0.0
-            earm.bottom_radius = 0.08
-            earm.height = 0.24
-        else:
-            earm.top_radius = 0.05
-            earm.bottom_radius = 0.07
-            earm.height = 0.14
-        ear.mesh = earm
-        ear.position = head_pos + Vector3(ex, 0.22, 0.04)
-        ear.material_override = _body_mat
-        add_child(ear)
+    # Ears (style-driven).
+    if ears != "none":
+        for ex in [-0.12, 0.12]:
+            var ear := MeshInstance3D.new()
+            var earm := CylinderMesh.new()
+            match ears:
+                "pointed":
+                    earm.top_radius = 0.0
+                    earm.bottom_radius = 0.08
+                    earm.height = 0.24
+                "long":
+                    earm.top_radius = 0.04
+                    earm.bottom_radius = 0.06
+                    earm.height = 0.42
+                _:
+                    earm.top_radius = 0.06
+                    earm.bottom_radius = 0.07
+                    earm.height = 0.14
+            ear.mesh = earm
+            ear.position = head_pos + Vector3(ex, 0.2, 0.02)
+            ear.material_override = _body_mat
+            add_child(ear)
 
-    # Tail, angled up off the back.
-    var tail := MeshInstance3D.new()
-    var tlm := CylinderMesh.new()
-    tlm.top_radius = 0.03
-    tlm.bottom_radius = 0.07
-    tlm.height = 0.5
-    tail.mesh = tlm
-    tail.rotation = Vector3(deg_to_rad(55), 0.0, 0.0)
-    tail.position = Vector3(0, torso_y + 0.05, 0.6)
-    tail.material_override = _body_mat
-    add_child(tail)
+    # Collision box (feet at y=0).
+    var col := CollisionShape3D.new()
+    var box := BoxShape3D.new()
+    var depth := 0.7 if biped else 1.3
+    box.size = Vector3(0.75, total_h, depth)
+    col.shape = box
+    col.position = Vector3(0, total_h * 0.5, 0)
+    add_child(col)
 
-    # Glowing eyes for predators — a readable "this one bites" cue.
-    if is_predator:
+    # Glowing eyes for predators.
+    if lean:
         var emat := StandardMaterial3D.new()
         emat.albedo_color = Color(1.0, 0.7, 0.2)
         emat.emission_enabled = true
