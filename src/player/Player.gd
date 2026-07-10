@@ -16,11 +16,18 @@ const ACCEL := 10.0
 # Yaw change (rad/s) that maps to a full-speed turn-in-place animation.
 const TURN_FULL_RATE := 2.4
 
-# Attack profiles: stamina, damage, total swing time, hit delay, poise damage, reach.
-# NOTE: LIGHT.time / HEAVY.time and .hit are mirrored by PlayerRig's attack clip
-# lengths + strike timing, so the visible swing lands with the hitscan.
-const LIGHT := {"stamina": 16.0, "damage": 14.0, "time": 0.40, "hit": 0.12, "poise": 10.0, "range": 2.6}
-const HEAVY := {"stamina": 34.0, "damage": 32.0, "time": 0.75, "hit": 0.40, "poise": 45.0, "range": 3.0}
+# Attack profiles: stamina, damage, total swing time, hit delay, cancel-window
+# open time, poise damage, reach, and the PlayerRig animation state. Clip lengths
+# and .hit are mirrored by PlayerRig so the visible swing lands with the hitscan;
+# .cancel is when the recovery window opens (chain the next attack, or dodge).
+const LIGHT_CHAIN := [
+    {"stamina": 13.0, "damage": 13.0, "time": 0.38, "hit": 0.12, "cancel": 0.23, "poise": 8.0, "range": 2.6, "anim": "AttackLight1"},
+    {"stamina": 13.0, "damage": 14.0, "time": 0.42, "hit": 0.14, "cancel": 0.26, "poise": 9.0, "range": 2.6, "anim": "AttackLight2"},
+    {"stamina": 18.0, "damage": 20.0, "time": 0.58, "hit": 0.24, "cancel": 0.42, "poise": 18.0, "range": 2.9, "anim": "AttackLight3"},
+]
+const HEAVY := {"stamina": 34.0, "damage": 32.0, "time": 0.75, "hit": 0.40, "cancel": 0.56, "poise": 45.0, "range": 3.0, "anim": "AttackHeavy"}
+# Brief freeze on a landed blow — the core of "hits that connect".
+const HITSTOP := 0.06
 
 const DODGE_STAMINA := 22.0
 const DODGE_SPEED := 11.0
@@ -56,6 +63,10 @@ var _rig: PlayerRig
 var _attack_timer := 0.0
 var _attack_total := 0.0
 var _attack_type := ""
+var _attack_data: Dictionary = {}
+var _combo_index := 0
+var _buffered := ""
+var _hitstop := 0.0
 var _hit_done := true
 var _dodge_timer := 0.0
 var _iframe_timer := 0.0
@@ -218,35 +229,112 @@ func _nearest_in_group(group: String, rng: float):
 
 # ---------- combat ----------
 func _try_attack(kind: String) -> void:
-    if is_attacking() or is_dodging():
+    if is_dodging():
         return
-    var a: Dictionary = HEAVY if kind == "heavy" else LIGHT
-    if survival == null or not survival.use_stamina(a["stamina"]):
+    if is_attacking():
+        # Chain if the recovery window is open; otherwise buffer the input so it
+        # fires the instant the window opens (responsive combos).
+        if _can_cancel_attack():
+            _begin_attack(kind)
+        else:
+            _buffered = kind
         return
+    _begin_attack(kind)
+
+func _can_cancel_attack() -> bool:
+    if _attack_data.is_empty():
+        return false
+    return (_attack_total - _attack_timer) >= float(_attack_data.get("cancel", _attack_total))
+
+## Start an attack (fresh, chained, or buffered). Light attacks walk the combo
+## chain; heavy resets it. Returns false if there wasn't enough stamina.
+func _begin_attack(kind: String) -> bool:
+    var data: Dictionary
+    if kind == "heavy":
+        data = HEAVY
+        _combo_index = 0
+    else:
+        var step := _combo_index % LIGHT_CHAIN.size()
+        data = LIGHT_CHAIN[step]
+        _combo_index = step + 1
+    if survival == null or not survival.use_stamina(float(data["stamina"])):
+        return false
+    _attack_data = data
     _attack_type = kind
-    _attack_total = a["time"]
-    _attack_timer = a["time"]
+    _attack_total = float(data["time"])
+    _attack_timer = float(data["time"])
     _hit_done = false
+    _buffered = ""
     if _rig != null:
-        _rig.play_state("AttackHeavy" if kind == "heavy" else "AttackLight")
+        _rig.play_state(String(data["anim"]))
     _play_sfx("whoosh")
+    return true
+
+func _reset_combo() -> void:
+    _combo_index = 0
+    _attack_data = {}
+    _attack_type = ""
+    _buffered = ""
 
 func _do_hit() -> void:
-    var a: Dictionary = HEAVY if _attack_type == "heavy" else LIGHT
+    if _attack_data.is_empty():
+        return
+    var a := _attack_data
     var origin := global_position
     var fwd := -global_transform.basis.z
+    # The blade arc plays whether or not it connects.
+    CombatFX.slash(get_parent(), _slash_xform(), Palette.PALEWILLOW)
     var landed := false
     for c in get_tree().get_nodes_in_group("creatures"):
         if not (c is Node3D):
             continue
         var to: Vector3 = c.global_position - origin
         to.y = 0.0
-        if to.length() <= a["range"] and fwd.dot(to.normalized()) > 0.30:
+        if to.length() <= float(a["range"]) and fwd.dot(to.normalized()) > 0.30:
             if c.has_method("take_damage"):
-                c.take_damage(a["damage"], a["poise"])
+                c.take_damage(float(a["damage"]), float(a["poise"]))
+                CombatFX.impact(get_parent(), c.global_position + Vector3(0.0, 0.8, 0.0), Palette.EMBER)
                 landed = true
     if landed:
         _play_sfx("thud")
+        _hitstop = HITSTOP
+        if _rig != null:
+            _rig.set_frozen(true)
+
+func _slash_xform() -> Transform3D:
+    var xf := global_transform
+    xf.origin += (-global_transform.basis.z * 1.5) + Vector3(0.0, 1.0, 0.0)
+    return xf
+
+## Advance the attack timeline, fire the hit at the right frame, consume buffered
+## combo inputs when the cancel window opens, and reset the combo when it ends.
+## Hitstop freezes the timeline (and the rig) for a couple of frames on a connect.
+func _tick_attack(delta: float) -> void:
+    if _hitstop > 0.0:
+        _hitstop = maxf(_hitstop - delta, 0.0)
+        if _hitstop <= 0.0 and _rig != null:
+            _rig.set_frozen(false)
+        return
+    if not is_attacking():
+        return
+    if not _hit_done and (_attack_total - _attack_timer) >= float(_attack_data.get("hit", _attack_total)):
+        _do_hit()
+        _hit_done = true
+        if _hitstop > 0.0:
+            return
+    if _buffered != "" and _can_cancel_attack():
+        var nxt := _buffered
+        _buffered = ""
+        _begin_attack(nxt)
+    _attack_timer = maxf(_attack_timer - delta, 0.0)
+    if _attack_timer <= 0.0:
+        if _buffered != "":
+            var queued := _buffered
+            _buffered = ""
+            if not _begin_attack(queued):
+                _reset_combo()
+        else:
+            _reset_combo()
 
 func _try_dodge() -> void:
     if is_dodging():
@@ -260,7 +348,11 @@ func _try_dodge() -> void:
     _dodge_dir = dir.normalized()
     _dodge_timer = DODGE_TIME
     _iframe_timer = IFRAME_TIME
+    # Dodge cancels any swing/hitstop and breaks the combo.
+    _hitstop = 0.0
+    _reset_combo()
     if _rig != null:
+        _rig.set_frozen(false)
         _rig.play_state("Roll")
 
 func _toggle_lock() -> void:
@@ -374,7 +466,12 @@ func take_damage(amount: float) -> void:
         return
     health -= amount * (1.0 - _defense())
     _hitstun = 0.2
+    # Getting hit breaks your swing and combo.
+    _attack_timer = 0.0
+    _hitstop = 0.0
+    _reset_combo()
     if _rig != null:
+        _rig.set_frozen(false)
         _rig.play_state("Hit")
     _play_sfx("hurt")
     if health <= 0.0:
@@ -403,27 +500,22 @@ func _input_dir() -> Vector3:
     return transform.basis * v
 
 func _physics_process(delta: float) -> void:
-    _attack_timer = maxf(_attack_timer - delta, 0.0)
     _dodge_timer = maxf(_dodge_timer - delta, 0.0)
     _iframe_timer = maxf(_iframe_timer - delta, 0.0)
     _hitstun = maxf(_hitstun - delta, 0.0)
     _tick_buffs(delta)
+    _tick_attack(delta)
 
-    # Feed the 2D locomotion blend (strafe/backpedal relative to facing) + turn-in-place.
+    # Feed the 2D locomotion blend + turn-in-place (skipped while hitstop freezes the rig).
     if _rig != null:
-        var lv := global_transform.basis.inverse() * Vector3(velocity.x, 0.0, velocity.z)
-        var local_dir := Vector2(lv.x, -lv.z) / SPRINT_SPEED
-        var turn_amt := 0.0
-        if delta > 0.0:
-            turn_amt = clampf(wrapf(rotation.y - _prev_yaw, -PI, PI) / delta / TURN_FULL_RATE, -1.0, 1.0)
+        if _hitstop <= 0.0:
+            var lv := global_transform.basis.inverse() * Vector3(velocity.x, 0.0, velocity.z)
+            var local_dir := Vector2(lv.x, -lv.z) / SPRINT_SPEED
+            var turn_amt := 0.0
+            if delta > 0.0:
+                turn_amt = clampf(wrapf(rotation.y - _prev_yaw, -PI, PI) / delta / TURN_FULL_RATE, -1.0, 1.0)
+            _rig.update_locomotion(local_dir, turn_amt)
         _prev_yaw = rotation.y
-        _rig.update_locomotion(local_dir, turn_amt)
-
-    if is_attacking() and not _hit_done:
-        var a: Dictionary = HEAVY if _attack_type == "heavy" else LIGHT
-        if _attack_total - _attack_timer >= a["hit"]:
-            _do_hit()
-            _hit_done = true
 
     if _status_timer > 0.0:
         _status_timer -= delta
