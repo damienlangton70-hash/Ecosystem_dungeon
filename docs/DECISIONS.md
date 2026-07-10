@@ -8,6 +8,33 @@ _Decided 2026-07-09._
 
 ---
 
+## Current milestone — TOP PRIORITY
+
+_Decided 2026-07-10 (owner-directed: "build in sections to complete full Floor 1")._
+
+**D16 — Complete FULL FLOOR 1, in sections. This is the current TOP PRIORITY — do it before the
+creature-rig / animation polish tracks; resume those once Floor 1 is complete.**
+Build one section per run; each must pass `tools/validate.sh`, stay runnable, and not regress
+existing systems (combat, animation, creature rigs, audio, cooking, ecosystem, graphics).
+- **S1 — Scale & enclosure (fixes "world falling"):** enlarge Floor 1 to ~10× today's size
+  (~500×500). Guarantee no falling: ONE solid ground collider across the whole area (no gaps),
+  tall/thick perimeter walls fully enclosing it, the player spawns on solid ground, the descent
+  shaft has a solid landing (no infinite void), AND a safety kill-plane (~y −60) that respawns
+  the player at the entrance if anything slips through.
+- **S2 — Populate:** spawn the full Floor-1 ecosystem from `data/lore.json` (every creature whose
+  `floors` includes 1: Mosslamb, Grotto Springhare, Blind Vole, Deep Quail, Gloomferret,
+  Ashjackal, Rockback Boar, Spinefowl, Cinder Cockatril, Gloamstalker Lynx) in believable numbers
+  across the space — prey common, predators rarer, Lynxes guarding the descent.
+- **S3 — Environment:** fill the larger space — multiple glowcap groves, water pool(s), a rocky
+  ridge / landmarks, and forageable flora (trees / berry bushes / herbs) distributed widely.
+- **S4 — Integrate & performance:** confirm combat, creature rigs/animation, audio,
+  cooking/foraging and the ecosystem all work together on the big floor; light performance pass
+  for the larger scene.
+- **S5 — Deliver:** a validated build; once the **Workflows permission** is granted, CI
+  auto-builds the Windows/Linux installers (workflow already staged at `ci/build.yml`).
+
+---
+
 ## Systems & scope
 
 **D1 — Butchery-quality tiers: APPROVED (as a system).**
