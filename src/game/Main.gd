@@ -9,16 +9,7 @@ extends Node3D
 
 var _player: Player
 var _ecosystem: Ecosystem
-
-var _hp_fill: ColorRect
-var _st_fill: ColorRect
-var _hu_fill: ColorRect
-var _depth_label: Label
-var _info_label: Label
-var _lock_label: Label
-var _inv_label: Label
-var _buff_label: Label
-var _status_label: Label
+var _hud: HUD
 
 # Combat tuning by trophic tier (lore.json holds ecology/identity, not combat numbers).
 const TIER_TUNING := {
@@ -37,7 +28,9 @@ func _ready() -> void:
     _spawn_player()
     _spawn_creatures()
     _spawn_forageables()
-    _build_hud()
+    _hud = HUD.new()
+    add_child(_hud)
+    _hud.bind(_player, _ecosystem)
     _build_audio()
 
 func _build_audio() -> void:
@@ -323,91 +316,3 @@ func _spawn_forageables() -> void:
             f.position = Vector3(rng.randf_range(-70, 70), 0.0, rng.randf_range(-52, 74))
             add_child(f)
 
-func _build_hud() -> void:
-    var layer := CanvasLayer.new()
-    add_child(layer)
-    var title := Label.new()
-    title.text = "DEEPFORAGE — Floor 1: The Fungal Shallows"
-    title.position = Vector2(16, 10)
-    layer.add_child(title)
-    _hp_fill = _make_bar(layer, Vector2(16, 40), Color(0.80, 0.20, 0.20), "HP")
-    _st_fill = _make_bar(layer, Vector2(16, 64), Color(0.20, 0.70, 0.90), "STA")
-    _hu_fill = _make_bar(layer, Vector2(16, 88), Color(0.85, 0.60, 0.20), "FOOD")
-    _depth_label = Label.new()
-    _depth_label.position = Vector2(16, 114)
-    layer.add_child(_depth_label)
-    _info_label = Label.new()
-    _info_label.position = Vector2(16, 138)
-    layer.add_child(_info_label)
-    _lock_label = Label.new()
-    _lock_label.position = Vector2(16, 162)
-    layer.add_child(_lock_label)
-    _inv_label = Label.new()
-    _inv_label.position = Vector2(16, 186)
-    layer.add_child(_inv_label)
-    _buff_label = Label.new()
-    _buff_label.position = Vector2(16, 210)
-    _buff_label.modulate = Color(0.75, 0.95, 0.85)
-    layer.add_child(_buff_label)
-    _status_label = Label.new()
-    _status_label.position = Vector2(16, 234)
-    _status_label.modulate = Color(1.0, 0.95, 0.7)
-    layer.add_child(_status_label)
-    var help := Label.new()
-    help.text = "WASD move · Shift sprint · Space jump · Mouse look · Esc cursor"
-    help.position = Vector2(16, 266)
-    layer.add_child(help)
-    var help2 := Label.new()
-    help2.text = "LMB light · RMB heavy · Q lock-on · Ctrl dodge · E gather · B campfire · C cook · F eat"
-    help2.position = Vector2(16, 288)
-    layer.add_child(help2)
-
-func _make_bar(layer: CanvasLayer, pos: Vector2, color: Color, label: String) -> ColorRect:
-    var lab := Label.new()
-    lab.text = label
-    lab.position = pos + Vector2(0, -3)
-    layer.add_child(lab)
-    var bg := ColorRect.new()
-    bg.color = Color(0, 0, 0, 0.5)
-    bg.position = pos + Vector2(54, 0)
-    bg.size = Vector2(200, 16)
-    layer.add_child(bg)
-    var fill := ColorRect.new()
-    fill.color = color
-    fill.position = pos + Vector2(54, 0)
-    fill.size = Vector2(200, 16)
-    layer.add_child(fill)
-    return fill
-
-func _process(_delta: float) -> void:
-    if _player == null or not is_instance_valid(_player):
-        return
-    if _hp_fill != null:
-        _hp_fill.size.x = 200.0 * clampf(_player.health / _player.max_health, 0.0, 1.0)
-    if _player.survival != null:
-        if _st_fill != null:
-            _st_fill.size.x = 200.0 * clampf(_player.survival.stamina / _player.survival.max_stamina, 0.0, 1.0)
-        if _hu_fill != null:
-            _hu_fill.size.x = 200.0 * clampf(_player.survival.hunger / _player.survival.max_hunger, 0.0, 1.0)
-    if _depth_label != null:
-        _depth_label.text = "Depth: %.1f m" % maxf(-_player.global_position.y, 0.0)
-    if _info_label != null and _ecosystem != null:
-        var n := get_tree().get_nodes_in_group("creatures").size()
-        _info_label.text = "Hostility: %d%%    Creatures: %d" % [int(_ecosystem.global_hostility * 100.0), n]
-    if _lock_label != null:
-        if _player.lock_target != null and is_instance_valid(_player.lock_target):
-            _lock_label.text = "[ lock-on: %s ]" % str(_player.lock_target.display_name)
-        else:
-            _lock_label.text = ""
-    if _inv_label != null:
-        _inv_label.text = "Raw meat: %d · Meals: %d · Fruit: %d · Herbs: %d" % [int(_player.inventory.get("raw_meat", 0)), _player.meals.size(), _player.count_category("fruit"), _player.count_category("herb")]
-    if _buff_label != null:
-        if _player.active_buffs.size() > 0:
-            var names: Array = []
-            for b in _player.active_buffs:
-                names.append(str(b["type"]))
-            _buff_label.text = "Buffs: " + ", ".join(names)
-        else:
-            _buff_label.text = ""
-    if _status_label != null:
-        _status_label.text = _player.status_text
