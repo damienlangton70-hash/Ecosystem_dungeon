@@ -100,13 +100,12 @@ flagging as a small remaining gap, not blocking. **S4 (integration/perf) and S5 
 status still unverified** — S4 is the natural next D16 item: confirm combat/rigs/audio/cooking/
 ecosystem all hold up with the floor now carrying ~44 creatures at once.
 
-**Also image-inspired (companion to S3, not yet done):** Damien shared a concept-art reference
+**Also image-inspired: ✅ SHIPPED (2026-07-10 pm).** Damien shared a concept-art reference
 (painterly isometric dungeon scene) and asked to "match the look." Rather than chase photoreal
-rendering (against house style — stylized low-poly stays canon), this run shipped a **real styled
-HUD** (see below) and flagged two more low-poly-appropriate, honest translations of the reference
-for a future run: an elevated stilt shelter + hanging lantern prop near one of the two water pools,
-and 1–2 more mushroom/flora silhouette variants for visual density — both natural S3-richness
-extensions, not new systems.
+rendering (against house style — stylized low-poly stays canon), this became three honest,
+low-poly-appropriate translations, all now shipped: a real styled **HUD**, a **stilt shelter +
+hanging lantern** landmark, and **mushroom-cluster** flora variety — see "Done recently" below
+for all three.
 
 The Lore team has now shipped the full design layer **ahead of production** (`docs/BESTIARY.md`,
 `docs/CREATURE_BEHAVIOUR.md`, `docs/RECIPES.md`, `docs/ITEMS.md`, `data/lore.json`) — every item
@@ -152,6 +151,23 @@ Then the broader backlog:
    (biped hopper — a good first test of the new `biped` rig path) or Rockback Boar.
 
 ## Done recently
+- **World: stilt shelter + hanging lantern + mushroom clusters (owner-directed, image-inspired
+  S3 richness):** new `src/world/Structures.gd` (landmark architecture — explicitly NOT the M3
+  player-buildable shelter/tent/den/magic-circle system; a hand-placed static prop, same tier as
+  a tree or the rocky ridge). `Structures.stilt_shelter()` — 4 stilts + cross-braces, a deck you
+  can stand on, a lean-to's back+side wall, a tilted-slab roof, and a beam-hung lantern (dark
+  frame + `MaterialLib.flame()` core + a real `OmniLight3D` at `Palette.FLAME`) — placed at the
+  eastern edge of the larger water pool, the one deliberate "warm ember near cold water" landmark
+  per ART_DIRECTION §0's own thesis. Collision is deliberately just 2 shapes (the deck to stand
+  on, the back wall so it's not walk-through) rather than one sealed blocking box, so the space
+  under the platform stays walkable — matches how every other landmark here only approximates its
+  own footprint. Also `Flora.mushroom_cluster()` — small ground-level glowing mushroom clumps (a
+  different scale/register from the landmark-sized Glowcap Pillar-trees), 5 scattered near both
+  pools cycling the cold-bioluminescence family (GLOW_TEAL/BLUE/VIOLET/GLOW_FUNGUS) for variety.
+  All new positions hand-checked against both water pools' exact bounding boxes and existing
+  landmarks to avoid literal overlaps. Honest caveat: exact prop orientation/spacing is
+  unverifiable without a GPU in this sandbox — reasonable, not pixel-perfect. Zero gameplay-logic
+  touched; validated headless green. Commits `1aa70e5`, `0b83f49`, `fc689e9`.
 - **D16-S2: full Floor-1 roster populated (owner-directed):** `Main.gd` now spawns and registers
   all 10 species `data/lore.json` lists for Floor 1, not just the original 3. Added: **Grotto
   Springhare, Blind Vole, Deep Quail** (Tier 1 grazers, 6 each, spread across open ground — common
