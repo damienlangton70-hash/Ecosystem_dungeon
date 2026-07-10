@@ -29,6 +29,16 @@ const HEAVY := {"stamina": 34.0, "damage": 32.0, "time": 0.75, "hit": 0.40, "can
 # Brief freeze on a landed blow — the core of "hits that connect".
 const HITSTOP := 0.06
 
+# Defence (A3): poise absorbs hits until it breaks into a stagger; parry deflects
+# an incoming blow, negates it, and staggers the attacker.
+const POISE_MAX := 60.0
+const POISE_REGEN := 14.0
+const POISE_REGEN_DELAY := 1.2
+const PLAYER_STAGGER_TIME := 0.7
+const PARRY_TOTAL := 0.5
+const PARRY_WINDOW := 0.24
+const PARRY_STAMINA := 10.0
+
 const DODGE_STAMINA := 22.0
 const DODGE_SPEED := 11.0
 const DODGE_TIME := 0.45
@@ -67,6 +77,10 @@ var _attack_data: Dictionary = {}
 var _combo_index := 0
 var _buffered := ""
 var _hitstop := 0.0
+var _poise := POISE_MAX
+var _poise_delay := 0.0
+var _parry_timer := 0.0
+var _stagger_timer := 0.0
 var _hit_done := true
 var _dodge_timer := 0.0
 var _iframe_timer := 0.0
@@ -166,6 +180,12 @@ func is_dodging() -> bool:
 func is_invulnerable() -> bool:
     return _iframe_timer > 0.0
 
+func is_parrying() -> bool:
+    return _parry_timer > (PARRY_TOTAL - PARRY_WINDOW)
+
+func is_staggered() -> bool:
+    return _stagger_timer > 0.0
+
 func _flash(msg: String) -> void:
     status_text = msg
     _status_timer = 3.0
@@ -201,6 +221,8 @@ func _unhandled_input(event: InputEvent) -> void:
                 _try_dodge()
             KEY_Q:
                 _toggle_lock()
+            KEY_R:
+                _try_parry()
             KEY_E:
                 _collect()
             KEY_B:
@@ -229,7 +251,7 @@ func _nearest_in_group(group: String, rng: float):
 
 # ---------- combat ----------
 func _try_attack(kind: String) -> void:
-    if is_dodging():
+    if is_dodging() or is_staggered():
         return
     if is_attacking():
         # Chain if the recovery window is open; otherwise buffer the input so it
@@ -337,7 +359,7 @@ func _tick_attack(delta: float) -> void:
             _reset_combo()
 
 func _try_dodge() -> void:
-    if is_dodging():
+    if is_dodging() or is_staggered():
         return
     if survival == null or not survival.use_stamina(DODGE_STAMINA):
         return
@@ -360,6 +382,56 @@ func _toggle_lock() -> void:
         lock_target = null
         return
     lock_target = _nearest_in_group("creatures", 20.0)
+
+func _try_parry() -> void:
+    if is_dodging() or is_staggered() or is_attacking():
+        return
+    if _parry_timer > 0.0:
+        return
+    if survival == null or not survival.use_stamina(PARRY_STAMINA):
+        return
+    _parry_timer = PARRY_TOTAL
+    _reset_combo()
+    if _rig != null:
+        _rig.set_frozen(false)
+        _rig.play_state("Parry")
+    _play_sfx("whoosh")
+
+## Enemies call this on a strike (falls back to take_damage). Returns true if the
+## blow was parried. A parry in the active window, facing the attacker, negates
+## the hit and staggers the attacker — the riposte opening.
+func receive_attack(amount: float, attacker) -> bool:
+    if is_invulnerable():
+        return false
+    if is_parrying() and _is_in_front(attacker):
+        _parry_success(attacker)
+        return true
+    take_damage(amount, amount * 0.7)
+    return false
+
+func _parry_success(attacker) -> void:
+    _play_sfx("chime")
+    var at := global_position + (-global_transform.basis.z * 1.2) + Vector3(0.0, 1.2, 0.0)
+    CombatFX.impact(get_parent(), at, Palette.GLOW_TEAL)
+    if attacker != null and is_instance_valid(attacker) and attacker.has_method("stagger"):
+        attacker.stagger()
+    _flash("Parry!")
+
+func _is_in_front(node) -> bool:
+    if node == null or not is_instance_valid(node):
+        return true
+    var to: Vector3 = node.global_position - global_position
+    to.y = 0.0
+    if to.length() < 0.01:
+        return true
+    return (-global_transform.basis.z).dot(to.normalized()) > 0.2
+
+func _enter_player_stagger() -> void:
+    _stagger_timer = PLAYER_STAGGER_TIME
+    _hitstun = PLAYER_STAGGER_TIME
+    _poise = POISE_MAX
+    if _rig != null:
+        _rig.play_state("Stagger")
 
 # ---------- survival / cooking loop ----------
 func _collect() -> void:
@@ -461,18 +533,27 @@ func _tick_buffs(delta: float) -> void:
         i -= 1
 
 # ---------- damage / life ----------
-func take_damage(amount: float) -> void:
+func take_damage(amount: float, poise_damage := 0.0) -> void:
     if is_invulnerable():
         return
+    if is_parrying():
+        _parry_success(null)
+        return
     health -= amount * (1.0 - _defense())
-    _hitstun = 0.2
-    # Getting hit breaks your swing and combo.
+    _poise -= poise_damage
+    _poise_delay = POISE_REGEN_DELAY
+    # Getting hit breaks your swing, combo, and any hitstop freeze.
     _attack_timer = 0.0
     _hitstop = 0.0
     _reset_combo()
     if _rig != null:
         _rig.set_frozen(false)
-        _rig.play_state("Hit")
+    if _poise <= 0.0:
+        _enter_player_stagger()
+    else:
+        _hitstun = 0.2
+        if _rig != null:
+            _rig.play_state("Hit")
     _play_sfx("hurt")
     if health <= 0.0:
         _respawn()
@@ -483,6 +564,13 @@ func _respawn() -> void:
     velocity = Vector3.ZERO
     lock_target = null
     active_buffs.clear()
+    _poise = POISE_MAX
+    _stagger_timer = 0.0
+    _parry_timer = 0.0
+    _hitstop = 0.0
+    _reset_combo()
+    if _rig != null:
+        _rig.set_frozen(false)
     if survival != null:
         survival.hunger = survival.max_hunger
     _flash("You black out... and wake at the entrance")
@@ -503,6 +591,11 @@ func _physics_process(delta: float) -> void:
     _dodge_timer = maxf(_dodge_timer - delta, 0.0)
     _iframe_timer = maxf(_iframe_timer - delta, 0.0)
     _hitstun = maxf(_hitstun - delta, 0.0)
+    _parry_timer = maxf(_parry_timer - delta, 0.0)
+    _stagger_timer = maxf(_stagger_timer - delta, 0.0)
+    _poise_delay = maxf(_poise_delay - delta, 0.0)
+    if _poise_delay <= 0.0 and _poise < POISE_MAX:
+        _poise = minf(POISE_MAX, _poise + POISE_REGEN * delta)
     _tick_buffs(delta)
     _tick_attack(delta)
 
